@@ -1,0 +1,417 @@
+// FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
+import React, { useState, useEffect, useMemo } from 'react';
+import { Shift, Employee, Location, Department, Absence, AbsenceType, SpecialDay, SpecialDayType, EmployeeAvailability, AvailabilityStatus, TimeBlock } from '../types';
+import { Trash2, CheckCircle, AlertTriangle, Lock, Clock } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
+import Modal from './Modal';
+
+interface ShiftEditorProps {
+    shift: Shift | null;
+    employees: Employee[];
+    locations: Location[];
+    departments: Department[];
+    selectedDate: Date | null;
+    allShifts: Shift[];
+    allAbsences: Absence[];
+    absenceTypes: AbsenceType[];
+    allSpecialDays: SpecialDay[];
+    allSpecialDayTypes: SpecialDayType[];
+    allEmployeeAvailabilities: EmployeeAvailability[];
+    onSave: (shift: Shift) => void;
+    onCancel: () => void;
+    onDelete?: (shiftId: string) => void;
+}
+
+const toInputDateString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const toInputTimeString = (date: Date) => {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+};
+
+const isSameDay = (d1: Date, d2: Date) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+
+const getTimeBlock = (date: Date): TimeBlock => {
+    const hour = date.getHours();
+    if (hour < 12) return 'morning';
+    if (hour < 18) return 'afternoon';
+    return 'evening';
+};
+
+const getAvailabilityForShift = (employeeId: string, startTime: Date, endTime: Date, allAvailabilities: EmployeeAvailability[]): AvailabilityStatus => {
+    const availabilityData = allAvailabilities.find(a => a.employeeId === employeeId);
+    if (!availabilityData) return 'available'; // Default if no data
+
+    const dayOfWeek = (startTime.getDay() + 6) % 7; // Monday = 0
+    const dayAvailability = availabilityData.availability[dayOfWeek];
+
+    const startBlock = getTimeBlock(startTime);
+    const endBlock = getTimeBlock(endTime);
+    
+    // Create a set of all blocks this shift touches
+    const blocks = new Set<TimeBlock>();
+    blocks.add(startBlock);
+    blocks.add(endBlock);
+    if (startBlock === 'morning' && endBlock === 'evening') {
+        blocks.add('afternoon');
+    }
+
+    const statuses = Array.from(blocks).map(block => dayAvailability[block]);
+
+    if (statuses.includes('unavailable')) return 'unavailable';
+    if (statuses.every(s => s === 'preferred')) return 'preferred';
+    return 'available';
+};
+
+
+const ShiftEditor: React.FC<ShiftEditorProps> = (props) => {
+    const { 
+        shift, employees, locations, departments, selectedDate, allShifts, allAbsences, absenceTypes,
+        allSpecialDays, allSpecialDayTypes, allEmployeeAvailabilities, onSave, onCancel, onDelete 
+    } = props;
+    const { t } = useLanguage();
+    const { user } = useAuth();
+    
+    const getInitialState = () => {
+        const date = shift?.startTime || selectedDate || new Date();
+        
+        const defaultStartTime = new Date(date);
+        defaultStartTime.setHours(9, 0, 0, 0);
+
+        const defaultEndTime = new Date(date);
+        defaultEndTime.setHours(17, 0, 0, 0);
+
+        return {
+            employeeId: shift?.employeeId || '', // Default to unassigned
+            startDate: toInputDateString(shift?.startTime || date),
+            startTime: toInputTimeString(shift?.startTime || defaultStartTime),
+            endDate: toInputDateString(shift?.endTime || date),
+            endTime: toInputTimeString(shift?.endTime || defaultEndTime),
+            locationId: shift?.locationId || '',
+            departmentId: shift?.departmentId || '',
+        };
+    };
+
+    const [formData, setFormData] = useState(getInitialState);
+    const [error, setError] = useState<string | null>(null);
+    const [availabilityStatus, setAvailabilityStatus] = useState<AvailabilityStatus>('available');
+
+    const isNew = !shift;
+    const today = useMemo(() => {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }, []);
+
+    // Derived states for locking UI elements
+    const isPast = shift ? new Date(shift.endTime) < new Date() : false;
+    const isClockedIn = !!shift?.actualStartTime;
+    const isCompleted = !!(shift?.actualStartTime && shift?.actualEndTime);
+    const isProPlus = user?.plan === 'Pro Plus';
+
+    const isNonProPlusInProgress = isClockedIn && !isCompleted && !isProPlus;
+    const isReadOnly = isPast || isCompleted || isNonProPlusInProgress;
+    const isEmployeeSelectLocked = isClockedIn;
+
+    useEffect(() => {
+        setFormData(getInitialState());
+    }, [shift, selectedDate, employees, locations, departments]);
+
+    useEffect(() => {
+        if (formData.employeeId) {
+            const newStartTime = new Date(`${formData.startDate}T${formData.startTime}`);
+            const newEndTime = new Date(`${formData.endDate}T${formData.endTime}`);
+            if (newEndTime > newStartTime) {
+                const status = getAvailabilityForShift(formData.employeeId, newStartTime, newEndTime, allEmployeeAvailabilities);
+                setAvailabilityStatus(status);
+            }
+        } else {
+            setAvailabilityStatus('available');
+        }
+    }, [formData.employeeId, formData.startDate, formData.startTime, formData.endDate, formData.endTime, allEmployeeAvailabilities]);
+    
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+        setError(null);
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (isReadOnly) return;
+        
+        const newStartTime = new Date(`${formData.startDate}T${formData.startTime}`);
+        const newEndTime = new Date(`${formData.endDate}T${formData.endTime}`);
+
+        if (isNew && newStartTime < today) {
+            setError(t('modals.errorPastShift'));
+            return;
+        }
+
+        if (newEndTime <= newStartTime) {
+            setError(t('modals.errorEndTime'));
+            return;
+        }
+
+        // Holiday conflict
+        const holidayOnDay = allSpecialDays.find(sd => {
+            const type = allSpecialDayTypes.find(sdt => sdt.id === sd.typeId);
+            return isSameDay(sd.date, newStartTime) && type?.isHoliday && sd.coverage === 'all-day';
+        });
+
+        if (holidayOnDay) {
+            const typeName = allSpecialDayTypes.find(sdt => sdt.id === holidayOnDay.typeId)?.name || 'Holiday';
+            setError(t('modals.errorHoliday', { typeName }));
+            return;
+        }
+        
+        // Conflict detection - only if an employee is assigned
+        if (formData.employeeId) {
+            // Absence conflict
+            const conflictingAbsence = allAbsences.find(absence => {
+                if (absence.employeeId !== formData.employeeId) return false;
+                return newStartTime < absence.endDate && newEndTime > absence.startDate;
+            });
+
+            if (conflictingAbsence) {
+                const absenceName = absenceTypes.find(at => at.id === conflictingAbsence.absenceTypeId)?.name || 'Absence';
+                setError(t('modals.errorAbsenceConflict', { absenceName }));
+                return;
+            }
+
+            // Shift overlap conflict
+            const conflictingShift = allShifts.find(s => {
+                if (s.id === shift?.id) return false; // Don't compare with self
+                if (s.employeeId !== formData.employeeId) return false;
+
+                const existingStartTime = new Date(s.startTime);
+                const existingEndTime = new Date(s.endTime);
+
+                // Overlap condition: (StartA < EndB) and (EndA > StartB)
+                return newStartTime < existingEndTime && newEndTime > existingStartTime;
+            });
+
+            if (conflictingShift) {
+                const formatTime = (date: Date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                setError(t('modals.errorShiftConflict', { 
+                    startTime: formatTime(conflictingShift.startTime), 
+                    endTime: formatTime(conflictingShift.endTime) 
+                }));
+                return;
+            }
+
+            // Availability conflict
+            const currentAvailability = getAvailabilityForShift(formData.employeeId, newStartTime, newEndTime, allEmployeeAvailabilities);
+            if(currentAvailability === 'unavailable') {
+                setError(t('modals.errorUnavailable'));
+                return;
+            }
+        }
+
+        const updatedShiftBase = {
+            id: shift?.id || `shift-${Date.now()}`,
+            employeeId: formData.employeeId || null,
+            startTime: newStartTime,
+            endTime: newEndTime,
+            companyId: user!.companyId,
+        };
+
+        const optionalFields: Partial<Shift> = {};
+        if (formData.locationId) optionalFields.locationId = formData.locationId;
+        if (formData.departmentId) optionalFields.departmentId = formData.departmentId;
+
+        // Preserve existing time clock data when editing
+        if (shift?.actualStartTime) optionalFields.actualStartTime = shift.actualStartTime;
+        if (shift?.actualEndTime) optionalFields.actualEndTime = shift.actualEndTime;
+
+        const updatedShift: Shift = {
+            ...updatedShiftBase,
+            ...optionalFields,
+        };
+        onSave(updatedShift);
+    };
+
+    const handleDelete = () => {
+        if (shift && onDelete && window.confirm(t('modals.confirmDeleteShift'))) {
+            onDelete(shift.id);
+        }
+    };
+    
+    const handleUnplannedClockOut = () => {
+        if (!shift) return;
+        if (window.confirm(t('modals.unplannedExitConfirm'))) {
+            const updatedShift = {
+                ...shift,
+                actualEndTime: new Date(),
+            };
+            onSave(updatedShift);
+        }
+    };
+
+    const title = shift ? (shift.employeeId ? t('schedule.editShift') : t('schedule.assignShift')) : t('schedule.addShiftTitle');
+
+    const modalFooter = (
+        <div className="flex justify-between items-center w-full">
+            <div>
+                {shift && onDelete && (
+                    <button type="button" onClick={handleDelete} className="btn-danger p-2" disabled={isReadOnly || isClockedIn}>
+                        <Trash2 size={20} />
+                    </button>
+                )}
+            </div>
+            <div className="flex space-x-2">
+                <button type="button" onClick={onCancel} className="btn-secondary">{t('modals.cancel')}</button>
+                <button type="submit" form="shift-editor-form" className="btn-primary" disabled={isReadOnly}>{t('modals.saveShift')}</button>
+            </div>
+        </div>
+    );
+    
+    const formatDateTime = (date: Date) => {
+        return new Date(date).toLocaleString(undefined, {
+            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+    };
+
+    return (
+        <Modal isOpen={true} onClose={onCancel} title={title} footer={modalFooter}>
+            <form id="shift-editor-form" onSubmit={handleSubmit} className="space-y-4">
+                 {error && <p className="text-red-600 dark:text-red-400 text-sm bg-red-100 dark:bg-red-900/30 p-3 rounded-lg flex items-center"><AlertTriangle size={16} className="mr-2"/>{error}</p>}
+                 {isReadOnly && (
+                    <p className="text-yellow-700 dark:text-yellow-300 text-sm bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-lg flex items-center">
+                        <Lock size={16} className="mr-2"/>{t('tooltips.shiftLocked')}
+                    </p>
+                 )}
+                <div>
+                    <label htmlFor="employeeId" className="label-style">{t('modals.employeeLabel')}</label>
+                    <select
+                        id="employeeId"
+                        name="employeeId"
+                        value={formData.employeeId || ''}
+                        onChange={handleChange}
+                        className="input-style mt-1"
+                        disabled={isReadOnly || isEmployeeSelectLocked}
+                    >
+                        <option value="">{t('modals.unassignedShift')}</option>
+                        {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+                    </select>
+                    {formData.employeeId && (
+                        <div className="mt-2 text-xs flex items-center">
+                            {availabilityStatus === 'preferred' && <span className="flex items-center text-green-600 dark:text-green-400"><CheckCircle size={14} className="mr-1.5"/>{t('modals.preferredTime')}</span>}
+                            {availabilityStatus === 'unavailable' && <span className="flex items-center text-red-600 dark:text-red-400"><AlertTriangle size={14} className="mr-1.5"/>{t('modals.employeeUnavailable')}</span>}
+                        </div>
+                    )}
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="locationId" className="label-style">{t('modals.locationLabel')}</label>
+                        <select id="locationId" name="locationId" value={formData.locationId} onChange={handleChange} className="input-style mt-1" disabled={isReadOnly}>
+                            <option value="">{t('modals.none')}</option>
+                            {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label htmlFor="departmentId" className="label-style">{t('modals.departmentLabel')}</label>
+                        <select id="departmentId" name="departmentId" value={formData.departmentId} onChange={handleChange} className="input-style mt-1" disabled={isReadOnly}>
+                            <option value="">{t('modals.none')}</option>
+                            {departments.map(dep => <option key={dep.id} value={dep.id}>{dep.name}</option>)}
+                        </select>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="startDate" className="label-style">{t('modals.startDateLabel')}</label>
+                        <input type="date" id="startDate" name="startDate" value={formData.startDate} onChange={handleChange} className="input-style mt-1" disabled={isReadOnly} min={isNew ? toInputDateString(today) : undefined} />
+                    </div>
+                    <div>
+                        <label htmlFor="startTime" className="label-style">{t('modals.startTimeLabel')}</label>
+                        <input type="time" id="startTime" name="startTime" value={formData.startTime} onChange={handleChange} className="input-style mt-1" disabled={isReadOnly} />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="endDate" className="label-style">{t('modals.endDateLabel')}</label>
+                        <input type="date" id="endDate" name="endDate" value={formData.endDate} onChange={handleChange} className="input-style mt-1" disabled={isReadOnly} min={formData.startDate} />
+                    </div>
+                    <div>
+                        <label htmlFor="endTime" className="label-style">{t('modals.endTimeLabel')}</label>
+                        <input type="time" id="endTime" name="endTime" value={formData.endTime} onChange={handleChange} className="input-style mt-1" disabled={isReadOnly} />
+                    </div>
+                </div>
+
+                {shift?.actualStartTime && (
+                     <div className="pt-4 mt-4 border-t dark:border-slate-800">
+                        <h4 className="label-style">{t('modals.timeClockData')}</h4>
+                        {user?.plan === 'Pro Plus' && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400 -mt-2 mb-2 italic">
+                                {t('modals.autoClockOutInfo')}
+                            </p>
+                        )}
+                        <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-lg space-y-2">
+                             <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400">{t('modals.clockedIn')}</label>
+                                    <input type="text" readOnly value={formatDateTime(shift.actualStartTime)} className="input-style mt-1 !bg-slate-200 dark:!bg-slate-700" />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400">{t('modals.clockedOut')}</label>
+                                     {isProPlus && isClockedIn && !isCompleted && !isPast && (
+                                        <button
+                                            type="button"
+                                            onClick={handleUnplannedClockOut}
+                                            className="btn-secondary text-xs !py-1 !px-2 float-right -mt-1 flex items-center"
+                                        >
+                                            <Clock size={14} className="mr-1.5" />
+                                            {t('modals.unplannedExit')}
+                                        </button>
+                                    )}
+                                    <input type="text" readOnly value={shift.actualEndTime ? formatDateTime(shift.actualEndTime) : '---'} className="input-style mt-1 !bg-slate-200 dark:!bg-slate-700" />
+                                </div>
+                            </div>
+                            {shift.actualEndTime && (
+                                <p className="text-xs text-green-600 dark:text-green-400 flex items-center font-semibold">
+                                    <CheckCircle size={14} className="mr-1.5" /> {t('modals.shiftCompleted')}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+
+                 <style>{`
+                    .label-style { display: block; margin-bottom: 0.375rem; font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; color: #475569; }
+                    .dark .label-style { color: #cbd5e1; }
+                    .input-style { display: block; width: 100%; padding: 0.625rem 0.75rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; background-color: #ffffff; color: #1e293b; }
+                    .dark .input-style { border-color: #475569; background-color: #1e293b; color: #f8fafc; }
+                    .input-style:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4); }
+                    .input-style:disabled { background-color: #f1f5f9; cursor: not-allowed; }
+                    .dark .input-style:disabled { background-color: #334155; }
+                    .btn-primary { padding: 0.625rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; color: white; background-color: #2563eb; transition: background-color 0.2s; }
+                    .btn-primary:hover:not(:disabled) { background-color: #1d4ed8; }
+                    .btn-primary:disabled { background-color: #93c5fd; cursor: not-allowed; }
+                    .btn-secondary { padding: 0.625rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; color: #334155; background-color: #e2e8f0; }
+                    .dark .btn-secondary { color: #e2e8f0; background-color: #334155; }
+                    .btn-secondary:hover { background-color: #cbd5e1; }
+                    .dark .btn-secondary:hover { background-color: #475569; }
+                    .btn-danger { padding: 0.625rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; color: #dc2626; background-color: #fee2e2; }
+                    .dark .btn-danger { color: #f87171; background-color: rgba(153, 27, 27, 0.4); }
+                    .btn-danger:hover { background-color: #fecaca; }
+                    .dark .btn-danger:hover { background-color: rgba(153, 27, 27, 0.6); }
+                    .btn-danger:disabled { background-color: #fca5a5; cursor: not-allowed; opacity: 0.7; }
+                    .dark .btn-danger:disabled { background-color: rgba(153, 27, 27, 0.2); }
+                `}</style>
+            </form>
+        </Modal>
+    );
+};
+
+export default ShiftEditor;
