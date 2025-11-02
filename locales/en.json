@@ -1,3 +1,4 @@
+
 {
   "appName": "Quick Shift",
   "sidebar": {
@@ -291,7 +292,7 @@
     "importInstruction": "To import documents for an employee, please first use the filter to select a single employee.",
     "importFor": "Import Documents for {name}",
     "importDesc": "Create a CSV file with the following headers. 'name' and 'type' are required.",
-    "importHeaders": "name,type,number,description,expirationDate",
+    "importHeaders": "name,type,number,description,expirationDate,isvalid",
     "confirmDelete": "Are you sure you want to delete the document '{name}'?",
     "valid": "Valid",
     "invalid": "Invalid",
@@ -586,11 +587,11 @@
     "signUp": "Sign Up",
     "emailLabel": "Email Address",
     "passwordLabel": "Password",
-    "forgotPassword": "Forgot password?",
+    "forgotPassword": "Forgot Password?",
     "signIn": "Sign In",
     "orSeparator": "OR",
     "continueWithGoogle": "Continue with Google",
-    "createAccount": "Create your account",
+    "createAccount": "Create Your Account",
     "alreadyHaveAccount": "Already have an account? {signIn}",
     "fullNameLabel": "Full Name",
     "confirmPasswordLabel": "Confirm Password",
@@ -611,40 +612,41 @@
     "companyNameLabel": "Company / Business Name",
     "companyNamePlaceholder": "e.g., The Corner Cafe",
     "addressLabel": "Address (optional)",
-    "selectedPlanLabel": "Subscription Plan",
+    "selectedPlanLabel": "Selected Plan",
     "createAccountButton": "Create My Account",
     "goToPayment": "Proceed to Payment",
     "unverified": "Your email is not verified. Please check your inbox for a verification link.",
     "invalidCredentials": "Invalid email or password.",
     "passwordMismatch": "Passwords do not match.",
     "emailExists": "An account with this email already exists.",
-    "emailExistsPaid": "This email address is already in use. Your payment was processed, but we could not create your account. Please contact support to link your payment to an existing account or for a refund.",
+    "emailExistsPaid": "This email address is already in use. Your payment has been processed, but we could not create your account. Please contact support to link your payment to an existing account or for a refund.",
     "registrationFailedPaid": "Registration failed after payment. Please contact support.",
     "registrationFailedUnknown": "An unknown error occurred during registration. Please try again.",
     "paymentCanceledTitle": "Payment Canceled",
     "paymentCanceledBody": "Your payment was not completed. You can try registering again from the homepage.",
     "goToHomepage": "Go to Homepage",
     "features": {
-        "title": "What's Included?",
-        "feature1Title": "Intuitive Scheduling",
-        "feature1Desc": "Effortlessly create and manage shifts with our drag-and-drop calendar.",
-        "feature2Title": "Staff Management",
-        "feature2Desc": "Keep all your employee information organized and accessible.",
-        "feature3Title": "Insightful Dashboard",
-        "feature3Desc": "Visualize key metrics to optimize your workforce.",
-        "feature4Title": "Absence Tracking",
-        "feature4Desc": "Manage time-off requests and see who's available at a glance."
+      "title": "What's Included?",
+      "feature1Title": "Intuitive Scheduling",
+      "feature1Desc": "Effortlessly create and manage shifts with our drag-and-drop calendar.",
+      "feature2Title": "Staff Management",
+      "feature2Desc": "Keep all your employee information organized and accessible.",
+      "feature3Title": "Insightful Dashboard",
+      "feature3Desc": "View key metrics to optimize your workforce.",
+      "feature4Title": "Absence Tracking",
+      "feature4Desc": "Manage time-off requests and see who's available at a glance."
     },
     "registrationSuccessTitle": "Registration Successful!",
     "registrationSuccessBody": "A verification link has been sent to <strong>{email}</strong>. Please check your inbox to activate your account.",
-    "proceedToLogin": "Back to Login",
+    "paymentSuccessBody": "Your payment was successful! Your account is being created. A verification link will be sent to your email shortly. Please check your inbox to activate your account.",
+    "proceedToLogin": "Proceed to Login",
     "forgotPasswordTitle": "Forgot Password?",
     "forgotPasswordInstruction": "Enter your email address and we'll send you a link to reset your password.",
     "sendResetLink": "Send Reset Link",
     "backToLogin": "Back to Login",
     "resetLinkSentTitle": "Check Your Email",
     "resetLinkSentBody": "If an account exists for <strong>{email}</strong>, you will receive an email with instructions on how to reset your password.",
-    "googleLoginFailed": "Google Sign-In failed. Please try again.",
+    "googleLoginFailed": "Google login failed. Please try again.",
     "notLoggedIn": "User is not logged in.",
     "companyNameRequired": "Company name is required.",
     "togglePasswordVisibility": "Toggle password visibility",
@@ -676,11 +678,11 @@
     "freePlanDesc": "Ideal for getting started",
     "freePlanPrice": "0",
     "freePlanFeature1": "Up to 10 staff members",
-    "freePlanFeature2": "Schedule shifts, events & meetings",
+    "freePlanFeature2": "Schedule shifts, events, and meetings",
     "freePlanFeature3": "Staff and role management",
-    "freePlanFeature4": "Multi-location & multi-department management",
+    "freePlanFeature4": "Multi-location and multi-department management",
     "freePlanFeature5": "Intuitive Dashboard",
-    "freePlanFeature6": "Document referencing",
+    "freePlanFeature6": "Document Referencing",
     "freePlanFeature7": "Document validity check",
     "proPlanName": "Pro",
     "proPlanDesc": "For growing teams",
@@ -703,11 +705,11 @@
     "proPlusPlanFeature4": "Synchronized requests (absences, validations)",
     "proPlusPlanFeature5": "Centralized inbox",
     "proPlusPlanFeature6": "Automatic assignment of absences",
-    "proPlusPlanFeature7": "Accurate and automated time tracking",
-    "proPlusPlanFeature8": "Real-time clock-in/out tracking",
+    "proPlusPlanFeature7": "Accurate and automated time accumulation",
+    "proPlusPlanFeature8": "Real-time clocking tracking.",
     "proPlusPlanFeature9": "Staff mobile application",
     "proPlusPlanFeature10": "Mobile schedule overview",
-    "proPlusPlanFeature11": "Real-time clock-in/out",
+    "proPlusPlanFeature11": "Real-time Clock in/out",
     "proPlusPlanFeature12": "Automatic clock-out",
     "proPlusPlanFeature13": "Unlimited multi-site geofencing for clocking"
   },
@@ -724,25 +726,25 @@
     "shiftLocked": "This shift is in the past or has been clocked, so it cannot be modified.",
     "statusPresent": "Present: Staff has clocked in or completed this shift.",
     "statusAbsent": "Absent: Staff has an approved absence for this day.",
-    "statusNotClockedIn": "Not Clocked-In: Shift has started but staff has not clocked in yet."
+    "statusNotClockedIn": "Not Clocked In: The shift has started but the staff has not clocked in yet."
   },
   "upgrade": {
     "dashboardTitle": "Unlock Your Dashboard",
     "dashboardDesc": "Upgrade to a Pro plan to access powerful analytics and insights into your team's schedule and performance.",
-    "upgradeButton": "Upgrade Plan",
+    "upgradeButton": "Upgrade",
     "timeClockTitle": "Unlock Real-Time Tracking",
-    "timeClockDesc": "Upgrade to the Pro Plus plan to access live tracking of your staff's clock-ins and see who is present, late, or absent in real-time."
+    "timeClockDesc": "Upgrade to the Pro Plus plan to access live tracking of your staff's clock-ins and see who is present, late, or absent in real time."
   },
   "header": {
     "inbox": "Inbox"
   },
   "calendarFilter": {
     "title": "Filter Schedule",
-    "filterByEmployee": "Filter by staff",
+    "filterByEmployee": "Filter by Staff",
     "searchEmployees": "Search for a member...",
     "noResults": "No members found.",
-    "filterByRole": "Filter by role",
-    "filterByDepartment": "Filter by department",
+    "filterByRole": "Filter by Role",
+    "filterByDepartment": "Filter by Department",
     "allDepartments": "All Departments",
     "clearAll": "Clear Filters",
     "active": "{count} active",
@@ -752,7 +754,7 @@
     "noOptions": "No options available."
   },
   "inbox": {
-    "emptyTitle": "All Caught Up!",
+    "emptyTitle": "All caught up!",
     "emptySubtitle": "You have no new messages.",
     "requestDetails": "Request Details",
     "from": "from",
@@ -776,17 +778,17 @@
         "dragDropTitle": "Drag & Drop",
         "dragDropContent": "Quickly reassign or reschedule a shift by dragging it to a new day.",
         "quickAddTitle": "Quick Add",
-        "quickAddContent": "Double-click an empty space in a day's column to quickly add a new shift.",
+        "quickAddContent": "Double-click on an empty space in a day's column to quickly add a new shift.",
         "multiSelectTitle": "Bulk Actions",
         "multiSelectContent": "Enable multi-select to select and delete multiple shifts at once.",
         "zoomTitle": "Change View",
         "zoomContent": "Use the zoom controls to switch between compact, default, and detailed views of the shifts.",
-        "lockTitle": "Protect from Edits",
+        "lockTitle": "Protect from Changes",
         "lockContent": "Lock the schedule to prevent accidental moves and edits. Past shifts are automatically locked.",
         "filterTitle": "Filter Your View",
         "filterContent": "Use the filters to narrow down the schedule by specific staff, roles, or departments.",
         "bulkAddTitle": "Bulk Add Shifts",
-        "bulkAddContent": "Quickly create recurring shifts for multiple employees over a date range using this tool.",
+        "bulkAddContent": "Quickly create recurring shifts for multiple employees over a period using this tool.",
         "addMeetingTitle": "Schedule Meetings",
         "addMeetingContent": "Organize team meetings directly on the calendar. The system will only check for absences, not shift conflicts."
     },
@@ -807,12 +809,12 @@
         "hoverEditContent": "Hover over any item in the list to reveal the edit and delete buttons."
     },
     "referencing": {
-        "filterTitle": "Filter & Search",
+        "filterTitle": "Filter and Search",
         "filterContent": "Use these controls to filter the document list by employee, document type, or expiration status. This is also how you select a single employee to enable bulk import.",
         "importTitle": "Import Documents",
-        "importContent": "You can bulk import documents for a single employee. First, use the filters to select an employee, then click here to upload a CSV file.",
-        "viewTitle": "Switch Views",
-        "viewContent": "Toggle between a comprehensive list view of all documents and a view grouped by employee for easier management.",
+        "importContent": "You can bulk import documents for a single employee. First, use the filters to select one employee, then click here to upload a CSV file.",
+        "viewTitle": "Switch View",
+        "viewContent": "Toggle between a full list view of all documents and a view grouped by employee for easier management.",
         "addTitle": "Add a Document",
         "addContent": "Click here to add a new document for any employee, specify its type, expiration date, and more.",
         "actionTitle": "Action on Expiration",
@@ -820,10 +822,10 @@
     }
   },
   "mobile": {
-    "loginTitle": "Schedule",
-    "loginSubtitle": "Please sign in to view your schedule.",
+    "loginTitle": "Schedules",
+    "loginSubtitle": "Please log in to see your schedule.",
     "accessCodePlaceholder": "6-Digit Access Code",
-    "loginButton": "Sign In",
+    "loginButton": "Log In",
     "loginError": "Invalid email or access code. Please try again.",
     "greeting": "Hello, {name}",
     "todaysShift": "Today's Shift",
@@ -834,7 +836,7 @@
     "time": "Time",
     "location": "Location",
     "department": "Department",
-    "notAssigned": "Not assigned",
+    "notAssigned": "Not Assigned",
     "canClockInAt": "You can clock in from {time}",
     "clockedInAt": "Clocked in at {time}",
     "clockedOut": "Shift Completed",
@@ -867,8 +869,8 @@
     "phone": "Phone",
     "gender": "Gender",
     "logout": "Log Out",
-    "doubleClickClockIn": "Click again to Clock In",
-    "doubleClickClockOut": "Click again to Clock Out",
+    "doubleClickClockIn": "Click again to clock in",
+    "doubleClickClockOut": "Click again to clock out",
     "confirmAbsenceRequest": "Are you sure you want to submit this absence request?",
     "confirmComplaint": "Are you sure you want to submit this complaint?",
     "installTitle": "Install Quick Shift",
@@ -877,7 +879,7 @@
     "installAction": "Install"
   },
   "availability": {
-    "description": "Click on time blocks to cycle through your availability: Available, Preferred, or Unavailable.",
+    "description": "Click on the time blocks to cycle through your availability: Available, Preferred, or Unavailable.",
     "monday": "Mon",
     "tuesday": "Tue",
     "wednesday": "Wed",
@@ -896,19 +898,19 @@
   },
   "userGuide": {
     "title": "User Guide",
-    "intro": "Welcome to your Quick Shift user guide! Here you'll find detailed explanations of all the features the platform offers, helping you get the most out of your subscription.",
+    "intro": "Welcome to your Quick Shift user guide! Here you'll find detailed explanations of all the features offered by the platform, helping you get the most out of your subscription.",
     "outro": "Need more help? Contact our support team anytime.",
     "dashboard": {
       "title": "Dashboard",
-      "content": "The Dashboard provides a real-time overview of your weekly operations. Key metrics include total staff, scheduled shifts, open shifts to be filled, and absences. For Pro and Pro Plus users, it offers advanced analytics like hours distribution by role and a cumulative hours analysis, which can be filtered and exported to CSV. It's your command center for making informed decisions."
+      "content": "The Dashboard provides a real-time overview of your weekly operations. Key metrics include total staff, scheduled shifts, open shifts to be filled, and absences. For Pro and Pro Plus users, it offers advanced analytics like hour distribution by role and a cumulative hours analysis, which can be filtered and exported to CSV. It's your command center for making informed decisions."
     },
     "schedule": {
       "title": "Schedule Management",
-      "content": "This is the heart of Quick Shift. Use the intuitive drag-and-drop calendar to create, assign, and modify shifts. Double-click any day to add a new shift. Use the filter bar for advanced actions like bulk adding shifts, scheduling meetings, logging absences, and exporting the schedule. Past and clocked shifts are automatically locked to prevent accidental changes, ensuring data integrity."
+      "content": "This is the core of Quick Shift. Use the intuitive drag-and-drop calendar to create, assign, and modify shifts. Double-click any day to add a new shift. Use the filter bar for advanced actions like bulk-adding shifts, scheduling meetings, logging absences, and exporting the schedule. Past and clocked-in shifts are automatically locked to prevent accidental changes, ensuring data integrity."
     },
     "employees": {
       "title": "Staff Roster",
-      "content": "The Staff section is your complete employee list. Add new members manually or, with a Pro plan, bulk import them from a CSV file. You can also perform bulk actions like deleting multiple employees or assigning a new role to several staff members at once. Click on an employee to edit their details, including role, contact information, and availability."
+      "content": "The Staff section is your complete employee list. Add new members manually or, with a Pro plan, bulk import them from a CSV file. You can also perform bulk actions like deleting multiple employees or assigning a new role to several staff members at once. Click on an employee to edit their details, including their role, contact information, and availability."
     },
     "referencing": {
         "title": "Document Referencing",
@@ -916,7 +918,7 @@
     },
     "timeclock": {
         "title": "Time Clock & Geofencing (Pro Plus)",
-        "content": "The Time Clock view gives you a live overview of staff attendance. See who has clocked in, is running late, has clocked out, or is absent in real-time. For enhanced accuracy, you can enable Geofencing in Settings. By setting an address and radius for a location, you require staff to be physically within that area to clock in or out via the mobile app."
+        "content": "The Time Clock view gives you a live look at staff attendance. See who has clocked in, is late, has clocked out, or is absent in real-time. For enhanced accuracy, you can enable Geofencing in the Settings. By setting an address and a radius for a location, you require staff to be physically within that area to clock in via the mobile app."
     },
     "history": {
         "title": "History & Auditing",
@@ -924,7 +926,7 @@
     },
     "settings": {
       "title": "Company Settings",
-      "content": "Customize Quick Shift to fit your business needs. In Settings, you can create and manage Roles, Locations (including geofence setup), and Departments. You can also define custom Absence Types, Calendar Events (like holidays that block scheduling), and Document Types for the referencing module."
+      "content": "Customize Quick Shift to fit your business needs. In Settings, you can create and manage Roles, Locations (including geofencing setup), and Departments. You can also define custom Absence Types, Calendar Events (like holidays that block scheduling), and Document Types for the referencing module."
     },
     "mobile": {
       "title": "Staff Mobile App (Pro Plus)",

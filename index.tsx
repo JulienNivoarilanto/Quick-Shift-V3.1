@@ -11,7 +11,7 @@ import { MobileAuthProvider } from './contexts/MobileAuthContext';
 import { MobileDataProvider } from './contexts/MobileDataContext';
 import LoadingSpinner from './components/LoadingSpinner';
 import * as api from './services/api';
-import { Loader2, MailCheck } from 'lucide-react';
+import { MailCheck } from 'lucide-react';
 
 
 const rootElement = document.getElementById('root');
@@ -37,8 +37,13 @@ const MobileAppWrapper = ({ installPrompt, onInstall }: { installPrompt: Event |
     </MobileAuthProvider>
 );
 
-const RegistrationVerificationView = ({ email }: { email: string }) => {
+const RegistrationVerificationView = ({ email }: { email: string | null }) => {
     const { t } = useLanguage();
+
+    const message = email
+        ? t('auth.registrationSuccessBody', { email: `<strong>${email}</strong>` })
+        : t('auth.paymentSuccessBody');
+
     return (
         <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-blue-night-950">
             <div className="p-8 bg-white dark:bg-blue-night-900 rounded-lg shadow-md text-center max-w-lg">
@@ -51,7 +56,7 @@ const RegistrationVerificationView = ({ email }: { email: string }) => {
                 <p 
                     className="mt-2 text-gray-600 dark:text-gray-400"
                     dangerouslySetInnerHTML={{
-                        __html: t('auth.registrationSuccessBody', { email: `<strong>${email}</strong>` })
+                        __html: message
                     }}
                 />
                 <a href="/" className="mt-6 inline-block bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg">
@@ -94,54 +99,18 @@ const SimpleRouter = () => {
   const path = window.location.pathname;
   const isEmployeeLoggedIn = !!localStorage.getItem('quickshift-employee');
   const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
-  const [registrationStatus, setRegistrationStatus] = useState<'idle' | 'processing' | 'success' | 'error' | 'canceled'>('idle');
-  const [registrationError, setRegistrationError] = useState('');
-  const [registeredEmail, setRegisteredEmail] = useState('');
-  const { t } = useLanguage();
-  
-  useEffect(() => {
-    const handlePaymentStatus = async () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        
-        if (urlParams.get('payment') === 'success') {
-            const pendingRegistrationRaw = sessionStorage.getItem('pendingRegistration');
-            if (pendingRegistrationRaw) {
-                setRegistrationStatus('processing');
-                try {
-                    const { userData, password, price } = JSON.parse(pendingRegistrationRaw);
-                    const result = await api.apiRegister(userData, password, price);
-                    if (result.success) {
-                        sessionStorage.removeItem('pendingRegistration');
-                        setRegisteredEmail(userData.email);
-                        setRegistrationStatus('success');
-                    } else {
-                        setRegistrationStatus('error');
-                        if (result.reason === 'email-exists') {
-                            setRegistrationError(t('auth.emailExistsPaid'));
-                        } else {
-                            setRegistrationError(t('auth.registrationFailedPaid'));
-                        }
-                    }
-                } catch (e) {
-                    console.error('Failed to process pending registration', e);
-                    setRegistrationStatus('error');
-                    setRegistrationError('An error occurred during registration. Please contact support.');
-                }
-            } else {
-                 setRegistrationStatus('error');
-                 setRegistrationError('No pending registration found. Your payment may have succeeded, but we could not create your account. Please contact support.');
-            }
-            // Clean up URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-        } else if (urlParams.get('payment') === 'cancel') {
-            sessionStorage.removeItem('pendingRegistration');
-            setRegistrationStatus('canceled');
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }
-    };
-    handlePaymentStatus();
-  }, [t]);
 
+  if (path === '/payment/success') {
+    const urlParams = new URLSearchParams(window.location.search);
+    const email = urlParams.get('email');
+    sessionStorage.removeItem('pendingRegistration');
+    return <RegistrationVerificationView email={email} />;
+  }
+
+  if (path === '/payment/cancel') {
+    sessionStorage.removeItem('pendingRegistration');
+    return <RegistrationCanceledView />;
+  }
 
   useEffect(() => {
     if (path.startsWith('/mobile')) {
@@ -168,12 +137,6 @@ const SimpleRouter = () => {
       };
     }
   }, [path]);
-
-  if (registrationStatus === 'processing') return <LoadingSpinner />;
-  if (registrationStatus === 'success') return <RegistrationVerificationView email={registeredEmail} />;
-  if (registrationStatus === 'error') return <RegistrationErrorView error={registrationError} />;
-  if (registrationStatus === 'canceled') return <RegistrationCanceledView />;
-
 
   if (isEmployeeLoggedIn) {
     if (path !== '/mobile') {
