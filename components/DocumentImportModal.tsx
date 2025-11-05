@@ -93,11 +93,10 @@ const DocumentImportModal: React.FC<DocumentImportModalProps> = ({ onClose, onIm
                 setParsedData(data);
                 setStep('preview');
             } catch (err) {
-                // FIX: The 'err' object in a catch block is of type 'unknown'.
-                // We must convert it to a string before setting the state.
                 if (err instanceof Error) {
                     setError(err.message);
                 } else {
+                    // FIX: The 'err' object in a catch block is of type 'unknown'. We must convert it to a string before setting the state.
                     setError(String(err));
                 }
                 setStep('upload');

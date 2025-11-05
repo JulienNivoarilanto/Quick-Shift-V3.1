@@ -1,10 +1,8 @@
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
-import { User, Shift, Subscription, Payment, Plan, Employee, AbsenceType, InboxMessage, Location, Department, Role, EmployeeDocument, Meeting, Company } from '../types';
-
-// --- CONTROL FLAG ---
-const IS_FIREBASE_DISABLED = true;
+import 'firebase/compat/functions';
+import { User, Shift, Subscription, Payment, Plan, Employee, AbsenceType, InboxMessage, Location, Department, Role, EmployeeDocument, Meeting, Company, BusinessType, ActivitySector } from '../types';
 
 // --- FIREBASE CONFIGURATION ---
 const firebaseConfig = {
@@ -19,15 +17,10 @@ const firebaseConfig = {
 
 
 // --- INITIALIZATION ---
-let app: firebase.app.App;
-let auth: firebase.auth.Auth;
-let db: firebase.firestore.Firestore;
-
-if (!IS_FIREBASE_DISABLED) {
-  app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
-  auth = app.auth();
-  db = app.firestore();
-}
+const app: firebase.app.App = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
+const auth: firebase.auth.Auth = app.auth();
+const db: firebase.firestore.Firestore = app.firestore();
+const functions: firebase.functions.Functions = app.functions();
 
 
 // --- DATA CONVERSION HELPERS ---
@@ -61,7 +54,6 @@ export type LoginResult = {
 }
 
 export const apiReauthenticate = async (password: string): Promise<{ success: boolean }> => {
-    if (IS_FIREBASE_DISABLED) return { success: false };
     const user = auth.currentUser;
     if (!user || !user.email) return { success: false };
 
@@ -76,7 +68,6 @@ export const apiReauthenticate = async (password: string): Promise<{ success: bo
 };
 
 export const apiLogin = async (email: string, pass: string): Promise<LoginResult> => {
-    if (IS_FIREBASE_DISABLED) return { success: false, reason: 'invalid' };
     try {
         const userCredential = await auth.signInWithEmailAndPassword(email, pass);
         if (userCredential.user && !userCredential.user.emailVerified) {
@@ -91,7 +82,6 @@ export const apiLogin = async (email: string, pass: string): Promise<LoginResult
 };
 
 export const apiLoginWithGoogle = async (): Promise<{ success: boolean }> => {
-    if (IS_FIREBASE_DISABLED) return { success: false };
     try {
         const provider = new firebase.auth.GoogleAuthProvider();
         const result = await auth.signInWithPopup(provider);
@@ -144,8 +134,54 @@ export const apiLoginWithGoogle = async (): Promise<{ success: boolean }> => {
     }
 };
 
-export const apiRegister = async (userData: Omit<User, 'id' | 'avatarUrl' | 'isVerified' | 'companyId' | 'password' | 'userRole' | 'customPermissions'>, pass: string, price: number): Promise<{ success: boolean, reason?: 'email-exists' | 'unknown' }> => {
-    if (IS_FIREBASE_DISABLED) return { success: false };
+export interface CheckoutSessionData {
+  name: string;
+  email: string;
+  password: string;
+  businessType: BusinessType;
+  companyName: string;
+  plan: Plan;
+  activitySector?: ActivitySector;
+  address?: string;
+}
+
+export const apiCreateStripeCheckoutSession = async (data: CheckoutSessionData | { userId: string; plan: Plan; email: string }) => {
+    const createSession = functions.httpsCallable('createStripeCheckoutSession');
+    try {
+        const result = await createSession(data);
+        const { url } = result.data as any;
+        if (url) {
+            window.location.href = url;
+        } else {
+            throw new Error("Cloud function did not return a URL.");
+        }
+    } catch (error) {
+        console.error("Error creating Stripe checkout session:", error);
+        throw error;
+    }
+};
+
+export const apiCreateStripePortalSession = async (userId: string, email: string) => {
+    const createPortal = functions.httpsCallable('createStripePortalSession');
+    try {
+        const result = await createPortal({ userId, email });
+        const { url } = result.data as any;
+        if (url) {
+            window.location.href = url;
+        } else {
+            throw new Error("Cloud function did not return a URL.");
+        }
+    } catch (error) {
+        console.error("Error creating Stripe portal session:", error);
+        throw error;
+    }
+};
+
+export const apiRegister = async (userData: Omit<User, 'id' | 'avatarUrl' | 'isVerified' | 'companyId' | 'password' | 'userRole' | 'customPermissions'>, pass: string): Promise<{ success: boolean, reason?: 'email-exists' | 'unknown' }> => {
+    if (userData.plan !== 'Gratuit') {
+        console.error("apiRegister called for a paid plan. This should be handled by Stripe checkout flow.");
+        return { success: false, reason: 'unknown' };
+    }
     try {
         const userCredential = await auth.createUserWithEmailAndPassword(userData.email, pass);
         const firebaseUser = userCredential.user!;
@@ -169,12 +205,8 @@ export const apiRegister = async (userData: Omit<User, 'id' | 'avatarUrl' | 'isV
             
             const subscriptionRef = db.collection('subscriptions').doc();
             const now = new Date();
-            let nextPaymentDate = new Date();
-            if (userData.plan === 'Gratuit') {
-                nextPaymentDate.setDate(now.getDate() + 14);
-            } else {
-                nextPaymentDate.setMonth(now.getMonth() + 1);
-            }
+            const nextPaymentDate = new Date();
+            nextPaymentDate.setDate(now.getDate() + 14); // Free trial period
             const newSubscription: Omit<Subscription, 'id'> = {
                 userId: firebaseUser.uid,
                 companyId: companyRef.id,
@@ -185,19 +217,6 @@ export const apiRegister = async (userData: Omit<User, 'id' | 'avatarUrl' | 'isV
                 renewalDate: nextPaymentDate
             };
             transaction.set(subscriptionRef, newSubscription);
-
-            if (userData.plan !== 'Gratuit') {
-                const paymentRef = db.collection('payments').doc();
-                const newPayment: Omit<Payment, 'id'> = {
-                    userId: firebaseUser.uid,
-                    subscriptionId: subscriptionRef.id,
-                    date: now,
-                    amount: price,
-                    plan: userData.plan,
-                    status: 'Paid'
-                };
-                transaction.set(paymentRef, newPayment);
-            }
         });
 
         await firebaseUser.updateProfile({ displayName: userData.name });
@@ -215,7 +234,6 @@ export const apiRegister = async (userData: Omit<User, 'id' | 'avatarUrl' | 'isV
 };
 
 export const apiCreateAdditionalUser = async (userData: any, password: string): Promise<{ success: boolean, newUser?: User, error?: string }> => {
-    if (IS_FIREBASE_DISABLED) return { success: false, error: "Firebase disabled" };
     try {
         const tempApp = firebase.initializeApp(firebaseConfig, `temp-app-${Date.now()}`);
         const tempAuth = tempApp.auth();
@@ -249,21 +267,15 @@ export const apiCreateAdditionalUser = async (userData: any, password: string): 
 export const apiDeleteUser = (userId: string) => {
     // This only deletes the Firestore record. The Auth user remains.
     // Deleting Auth user requires a backend function.
-    if (IS_FIREBASE_DISABLED) return Promise.reject("Firebase disabled");
     return db.collection('users').doc(userId).delete();
 };
 
 
 export const apiLogout = () => {
-    if (IS_FIREBASE_DISABLED) return;
     auth.signOut();
 };
 
 export const apiForgotPassword = async (email: string): Promise<{ success: boolean; messageKey: string }> => {
-    if (IS_FIREBASE_DISABLED) {
-        console.log(`Simulating password reset for ${email}`);
-        return { success: true, messageKey: 'auth.resetLinkSentTitle' };
-    }
     try {
         await auth.sendPasswordResetEmail(email);
         return { success: true, messageKey: 'auth.resetLinkSentTitle' };
@@ -275,15 +287,10 @@ export const apiForgotPassword = async (email: string): Promise<{ success: boole
 
 
 export const onAuthStateChangedListener = (callback: (user: any) => void) => {
-    if (IS_FIREBASE_DISABLED) {
-        callback(null);
-        return () => {}; 
-    }
     return auth.onAuthStateChanged(callback);
 };
 
 export const getUserData = async (userId: string): Promise<{ user: User, subscription: Subscription | null, paymentHistory: Payment[] } | null> => {
-    if (IS_FIREBASE_DISABLED) return null;
     const userDocRef = db.collection('users').doc(userId);
     const userDoc = await userDocRef.get();
 
@@ -301,7 +308,6 @@ export const getUserData = async (userId: string): Promise<{ user: User, subscri
 };
 
 export const apiGetCompany = async (companyId: string): Promise<Company | null> => {
-    if (IS_FIREBASE_DISABLED) return null;
     const companyDoc = await db.collection('companies').doc(companyId).get();
     if (!companyDoc.exists) return null;
     return docWithId(companyDoc);
@@ -309,7 +315,6 @@ export const apiGetCompany = async (companyId: string): Promise<Company | null> 
 
 
 export const apiUpdateUser = async (userId: string, updatedData: Partial<User>): Promise<User> => {
-    if (IS_FIREBASE_DISABLED) throw new Error("Firebase is disabled. Cannot update user.");
     const userRef = db.collection('users').doc(userId);
 
     // Handle auth changes ONLY for the currently logged in user updating their own profile
@@ -339,7 +344,6 @@ export const apiUpdateUser = async (userId: string, updatedData: Partial<User>):
 };
 
 export const apiChangePassword = async (currentPassword: string, newPassword: string): Promise<{ success: boolean; messageKey: string }> => {
-    if (IS_FIREBASE_DISABLED) return { success: false, messageKey: 'auth.notLoggedIn' };
     const user = auth.currentUser;
     if (!user || !user.email) return { success: false, messageKey: 'auth.notLoggedIn' };
 
@@ -445,11 +449,9 @@ export const apiSubmitRequest = async (requestData: Omit<InboxMessage, 'id' | 's
 
 // --- DATA API ---
 export const getCollectionsData = async (collectionNames: string[], companyId: string): Promise<any> => {
-    if (IS_FIREBASE_DISABLED || !db) {
-        const emptyData: any = {};
-        collectionNames.forEach(name => { emptyData[name] = []; });
-        return emptyData;
-    }
+    const emptyData: any = {};
+    collectionNames.forEach(name => { emptyData[name] = []; });
+    
     const dataPromises = collectionNames.map(async (collName) => {
         const collRef = db.collection(collName);
         const q = collRef.where("companyId", "==", companyId);
@@ -467,10 +469,6 @@ export const onCollectionSnapshot = (
     callback: (data: any[]) => void,
     onError: (error: Error) => void
 ): (() => void) => {
-    if (IS_FIREBASE_DISABLED || !db) {
-        callback([]);
-        return () => {};
-    }
     const query = db.collection(collectionName).where("companyId", "==", companyId);
     return query.onSnapshot(snapshot => {
         const collectionData = snapshot.docs.map(docWithId);
@@ -482,9 +480,6 @@ export const onCollectionSnapshot = (
 };
 
 export const apiGetInboxMessages = async (companyId: string): Promise<InboxMessage[]> => {
-    if (IS_FIREBASE_DISABLED) {
-        return [];
-    }
     try {
         const collRef = db.collection('inboxMessages');
         const q = collRef.where("companyId", "==", companyId);
@@ -497,7 +492,6 @@ export const apiGetInboxMessages = async (companyId: string): Promise<InboxMessa
 };
 
 export const apiCreateItem = async <T extends {id: string}>(collectionName: string, data: Omit<T, 'id'>): Promise<T> => {
-    if (IS_FIREBASE_DISABLED) throw new Error("Firebase is disabled. Cannot create item.");
     const collRef = db.collection(collectionName);
     const docRef = await collRef.add(data);
     const newDoc = await docRef.get();
@@ -505,21 +499,18 @@ export const apiCreateItem = async <T extends {id: string}>(collectionName: stri
 };
 
 export const apiUpdateItem = <T extends { id: string }>(collectionName: string, id: string, data: Partial<T>) => {
-    if (IS_FIREBASE_DISABLED) return Promise.reject(new Error("Firebase is disabled. Cannot update item."));
     const docRef = db.collection(collectionName).doc(id);
     const { id: docId, ...dataToUpdate } = data as any;
     return docRef.update(dataToUpdate);
 };
 
 export const apiDeleteItem = (collectionName: string, itemId: string) => {
-    if (IS_FIREBASE_DISABLED) return Promise.reject(new Error("Firebase is disabled. Cannot delete item."));
     const docRef = db.collection(collectionName).doc(itemId);
     return docRef.delete();
 };
 
 // --- BULK OPERATIONS ---
 export const apiBulkDeleteItems = (collectionName: string, itemIds: string[]) => {
-    if (IS_FIREBASE_DISABLED) return Promise.reject(new Error("Firebase is disabled."));
     const batch = db.batch();
     itemIds.forEach(id => {
         const docRef = db.collection(collectionName).doc(id);
@@ -529,7 +520,6 @@ export const apiBulkDeleteItems = (collectionName: string, itemIds: string[]) =>
 };
 
 export const apiBulkDeleteMixedItems = (items: {collection: string, id: string}[]) => {
-    if (IS_FIREBASE_DISABLED) return Promise.reject(new Error("Firebase is disabled."));
     const batch = db.batch();
     items.forEach(item => {
         const docRef = db.collection(item.collection).doc(item.id);
@@ -540,7 +530,6 @@ export const apiBulkDeleteMixedItems = (items: {collection: string, id: string}[
 
 
 export const apiBulkUpdateItems = (collectionName: string, itemIds: string[], updateData: object) => {
-    if (IS_FIREBASE_DISABLED) return Promise.reject(new Error("Firebase is disabled."));
     const batch = db.batch();
     itemIds.forEach(id => {
         const docRef = db.collection(collectionName).doc(id);
@@ -551,7 +540,6 @@ export const apiBulkUpdateItems = (collectionName: string, itemIds: string[], up
 
 
 export const apiUpdateAllShifts = (shifts: Shift[], companyId: string) => {
-    if (IS_FIREBASE_DISABLED) return Promise.reject(new Error("Firebase is disabled. Cannot update shifts."));
     const batch = db.batch();
     shifts.forEach(shift => {
         const shiftWithCompanyId = { ...shift, companyId };
@@ -562,7 +550,6 @@ export const apiUpdateAllShifts = (shifts: Shift[], companyId: string) => {
 };
 
 export const apiBulkDeleteShifts = (shiftIds: string[]) => {
-    if (IS_FIREBASE_DISABLED) return Promise.reject(new Error("Firebase is disabled. Cannot delete shifts."));
     const batch = db.batch();
     shiftIds.forEach(id => {
         const docRef = db.collection('shifts').doc(id);
@@ -572,7 +559,6 @@ export const apiBulkDeleteShifts = (shiftIds: string[]) => {
 };
 
 export const apiBulkCreateEmployees = async (employees: Array<Omit<Employee, 'id' | 'avatarUrl' | 'companyId'>>, companyId: string): Promise<Employee[]> => {
-    if (IS_FIREBASE_DISABLED) throw new Error("Firebase is disabled. Cannot create employees.");
     const batch = db.batch();
     const newEmployeeDocs: any[] = [];
     const employeesCollection = db.collection('employees');
@@ -587,7 +573,6 @@ export const apiBulkCreateEmployees = async (employees: Array<Omit<Employee, 'id
 };
 
 export const apiBulkCreateEmployeeDocuments = async (documents: Array<Omit<EmployeeDocument, 'id' | 'companyId'>>, companyId: string): Promise<EmployeeDocument[]> => {
-    if (IS_FIREBASE_DISABLED) throw new Error("Firebase is disabled.");
     const batch = db.batch();
     const newDocs: any[] = [];
     const collection = db.collection('employeeDocuments');
@@ -603,8 +588,6 @@ export const apiBulkCreateEmployeeDocuments = async (documents: Array<Omit<Emplo
 
 
 export const apiBulkCreateShifts = async (shifts: Array<Omit<Shift, 'id' | 'companyId'>>, companyId: string): Promise<Shift[]> => {
-    if (IS_FIREBASE_DISABLED) throw new Error("Firebase is disabled.");
-    
     const batch = db.batch();
     const shiftsCollection = db.collection('shifts');
     const newDocRefs = shifts.map(() => shiftsCollection.doc());

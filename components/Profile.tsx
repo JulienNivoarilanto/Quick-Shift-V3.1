@@ -6,13 +6,7 @@ import Avatar from './Avatar';
 import { Edit, Save, Lock, Gem, Building, MapPin, Briefcase, AlertTriangle, CheckCircle, User as UserIcon, HelpCircle, Users, Plus, Trash2, ChevronDown, Eye, EyeOff, Circle, Search, Loader2, Phone, ExternalLink } from 'lucide-react';
 import UserGuide from './UserGuide';
 import Modal from './Modal';
-
-// Replace these placeholder IDs with your actual Stripe Price IDs.
-const STRIPE_PRICE_IDS = {
-    'Pro': 'prod_TJUzfhLKq80DPv',
-    'Pro Plus': 'prod_TJV05RSuClA7hJ',
-};
-
+import { apiCreateStripeCheckoutSession, apiCreateStripePortalSession } from '../services/api';
 
 // #region Helper Components
 const resizeImage = (file: File, maxWidth: number): Promise<string> => {
@@ -610,20 +604,21 @@ const SubscriptionTab: React.FC = () => {
 
     if (!user) return null;
     
-    // Simulate API calls to Firebase extension
-    const handleStripeAction = (type: 'checkout' | 'portal', priceId?: string) => {
+    const handleStripeAction = async (type: 'checkout' | 'portal', plan?: 'Pro' | 'Pro Plus') => {
         const message = type === 'checkout' ? t('profile.redirectingToCheckout') : t('profile.redirectingToPortal');
         setIsRedirecting(message);
 
-        // In a real app, this would be `await api.createStripeCheckoutSession(user.id, priceId)`
-        // or `await api.createStripePortalSession(user.id)` which would listen to Firestore
-        // for the URL from the extension.
-        console.log(`Simulating Stripe ${type} action. Price ID: ${priceId || 'N/A'}`);
-        
-        setTimeout(() => {
-            alert(message);
+        try {
+            if (type === 'portal' && user) {
+                await apiCreateStripePortalSession(user.id, user.email);
+            } else if (type === 'checkout' && plan && user) {
+                await apiCreateStripeCheckoutSession({ userId: user.id, plan, email: user.email });
+            }
+        } catch (error) {
+            console.error(`Failed to create Stripe ${type} session`, error);
+            alert(`Could not redirect to ${type}. Please try again.`);
             setIsRedirecting(null);
-        }, 2000);
+        }
     };
 
     if (isRedirecting) {
@@ -647,10 +642,10 @@ const SubscriptionTab: React.FC = () => {
                 <h4 className="text-lg font-semibold">{t('profile.upgradePlan')}</h4>
                 <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">{t('profile.upgradeToProDesc')}</p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
-                    <button onClick={() => handleStripeAction('checkout', STRIPE_PRICE_IDS['Pro'])} className="btn-primary flex-1">
+                    <button onClick={() => handleStripeAction('checkout', 'Pro')} className="btn-primary flex-1">
                         {t('profile.upgradeTo', { planName: 'Pro' })}
                     </button>
-                    <button onClick={() => handleStripeAction('checkout', STRIPE_PRICE_IDS['Pro Plus'])} className="btn-primary flex-1">
+                    <button onClick={() => handleStripeAction('checkout', 'Pro Plus')} className="btn-primary flex-1">
                         {t('profile.upgradeTo', { planName: 'Pro Plus' })}
                     </button>
                 </div>

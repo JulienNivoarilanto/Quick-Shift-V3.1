@@ -103,12 +103,10 @@ const SimpleRouter = () => {
   if (path === '/payment/success') {
     const urlParams = new URLSearchParams(window.location.search);
     const email = urlParams.get('email');
-    sessionStorage.removeItem('pendingRegistration');
     return <RegistrationVerificationView email={email} />;
   }
 
   if (path === '/payment/cancel') {
-    sessionStorage.removeItem('pendingRegistration');
     return <RegistrationCanceledView />;
   }
 

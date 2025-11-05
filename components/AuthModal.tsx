@@ -6,6 +6,7 @@ import { Plan, BusinessType, ActivitySector } from '../types';
 import { Check, Calendar, Users, BarChart3, CalendarOff, MailCheck, Loader2, CreditCard, AlertTriangle, Eye, EyeOff, Info, CheckCircle, Circle } from 'lucide-react';
 import Logo from './Logo';
 import { useCurrency } from '../contexts/CurrencyContext';
+import { apiCreateStripeCheckoutSession } from '../services/api';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -13,11 +14,6 @@ interface AuthModalProps {
     initialView?: 'login' | 'register';
     initialPlan?: Plan;
 }
-
-const STRIPE_TEST_PAYMENT_LINKS = {
-    'Pro': 'https://buy.stripe.com/test_5kQ9AU9EN6hj7TwgEg7IY03',
-    'Pro Plus': 'https://buy.stripe.com/test_8x28wQdV3axz0r4ds47IY02',
-};
 
 type AuthView = 'login' | 'register' | 'forgotPassword' | 'forgotPasswordSuccess' | 'registerSuccess';
 
@@ -218,37 +214,34 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialView = 'l
 
         setIsProcessing(true);
 
-        const currentRegistrationData = {
-            name,
-            email,
-            plan,
-            businessType,
-            companyName: finalCompanyName,
-            ...(activitySector && { activitySector }),
-            ...(address && { address }),
-        };
-
         if (plan !== 'Gratuit') {
-            const planKey = planKeys[plan];
-            const price = Number(t(`pricing.${planKey}Price`));
-            sessionStorage.setItem('pendingRegistration', JSON.stringify({ userData: currentRegistrationData, password, price }));
-            
-            const link = STRIPE_TEST_PAYMENT_LINKS[plan as 'Pro' | 'Pro Plus'];
-            if (!link) {
-                setError('Invalid plan for payment.');
+            const registrationData = {
+                name, email, password, plan, businessType,
+                companyName: finalCompanyName,
+                ...(activitySector && { activitySector }),
+                ...(address && { address }),
+            };
+            try {
+                await apiCreateStripeCheckoutSession(registrationData);
+            } catch (err) {
+                setError('Could not connect to payment service. Please try again.');
                 setIsProcessing(false);
-                return;
             }
-            const stripeLink = new URL(link);
-            stripeLink.searchParams.append('prefilled_email', email);
-            stripeLink.searchParams.append('success_url', `${window.location.origin}?payment=success`);
-            stripeLink.searchParams.append('cancel_url', `${window.location.origin}?payment=cancel`);
-            window.location.href = stripeLink.toString();
             return;
         }
 
+        // Free plan registration
         try {
-            const result = await register(currentRegistrationData, password, 0);
+            const result = await register({
+                name,
+                email,
+                plan,
+                businessType,
+                companyName: finalCompanyName,
+                ...(activitySector && { activitySector }),
+                ...(address && { address }),
+            }, password);
+
             if (!result.success) {
                 if (result.reason === 'email-exists') {
                     setError(t('auth.emailExists'));

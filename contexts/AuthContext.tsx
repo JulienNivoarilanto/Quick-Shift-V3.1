@@ -39,7 +39,7 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<LoginResult>;
   loginWithGoogle: () => Promise<{ success: boolean }>;
   logout: () => void;
-  register: (userData: Omit<User, 'id' | 'avatarUrl' | 'isVerified' | 'companyId' | 'password' | 'userRole' | 'customPermissions'>, pass: string, price: number) => Promise<{success: boolean; reason?: 'email-exists' | 'unknown'}>;
+  register: (userData: Omit<User, 'id' | 'avatarUrl' | 'isVerified' | 'companyId' | 'password' | 'userRole' | 'customPermissions'>, pass: string) => Promise<{success: boolean; reason?: 'email-exists' | 'unknown'}>;
   updateUser: (updatedData: Partial<User>) => void;
   verifyUser: (email: string) => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; messageKey: string }>;
@@ -180,8 +180,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // State will be cleared by the onAuthStateChanged listener
   };
 
-  const register = async (userData: Omit<User, 'id' | 'avatarUrl' | 'isVerified' | 'companyId' | 'password' | 'userRole' | 'customPermissions'>, pass: string, price: number): Promise<{success: boolean; reason?: 'email-exists' | 'unknown'}> => {
-    const result = await api.apiRegister(userData, pass, price);
+  const register = async (userData: Omit<User, 'id' | 'avatarUrl' | 'isVerified' | 'companyId' | 'password' | 'userRole' | 'customPermissions'>, pass: string): Promise<{success: boolean; reason?: 'email-exists' | 'unknown'}> => {
+    const result = await api.apiRegister(userData, pass);
     return result;
   };
   
