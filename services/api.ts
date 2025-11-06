@@ -149,10 +149,12 @@ export const apiCreateStripeCheckoutSession = async (data: CheckoutSessionData |
     const createSession = functions.httpsCallable('createStripeCheckoutSession');
     try {
         const result = await createSession(data);
+        console.log("Full response from createStripeCheckoutSession function:", result);
         const { url } = result.data as any;
         if (url) {
             window.location.href = url;
         } else {
+            console.error("Cloud function response data did not contain a URL.", result.data);
             throw new Error("Cloud function did not return a URL.");
         }
     } catch (error) {
@@ -165,10 +167,12 @@ export const apiCreateStripePortalSession = async (userId: string, email: string
     const createPortal = functions.httpsCallable('createStripePortalSession');
     try {
         const result = await createPortal({ userId, email });
+        console.log("Full response from createStripePortalSession function:", result);
         const { url } = result.data as any;
         if (url) {
             window.location.href = url;
         } else {
+            console.error("Cloud function response data did not contain a URL.", result.data);
             throw new Error("Cloud function did not return a URL.");
         }
     } catch (error) {

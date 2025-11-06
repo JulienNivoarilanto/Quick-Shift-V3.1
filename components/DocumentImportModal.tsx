@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { Employee, DocumentType, EmployeeDocument } from '../types';
 import Modal from './Modal';
@@ -96,7 +97,7 @@ const DocumentImportModal: React.FC<DocumentImportModalProps> = ({ onClose, onIm
                 if (err instanceof Error) {
                     setError(err.message);
                 } else {
-                    // FIX: The 'err' object in a catch block is of type 'unknown'. We must convert it to a string before setting the state.
+// FIX: Cast error to string to resolve 'Type 'unknown' is not assignable to type 'string'.' error.
                     setError(String(err));
                 }
                 setStep('upload');
