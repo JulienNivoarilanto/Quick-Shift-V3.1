@@ -1,12 +1,15 @@
 
 
 import React, { useState } from 'react';
-import { Employee, DocumentType, EmployeeDocument } from '../types';
+import { Employee, ContractType } from '../types';
 import Modal from './Modal';
 import { Upload, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
-type ImportableDocument = Omit<EmployeeDocument, 'id' | 'companyId'>;
+type ImportableEmployee = Omit<Employee, 'id' | 'avatarUrl' | 'companyId'>;
+
+const CONTRACT_TYPES: ContractType[] = ['permanent', 'temporary', 'internship', 'volunteer', 'interim', 'apprenticeship', 'professionalization', 'part-time', 'seasonal'];
+
 
 interface DocumentImportModalProps {
     onClose: () => void;
@@ -97,7 +100,7 @@ const DocumentImportModal: React.FC<DocumentImportModalProps> = ({ onClose, onIm
                 if (err instanceof Error) {
                     setError(err.message);
                 } else {
-// FIX: Cast error to string to resolve 'Type 'unknown' is not assignable to type 'string'.' error.
+                    // Fix: Cast error to string to resolve 'Type 'unknown' is not assignable to type 'string'.' error.
                     setError(String(err));
                 }
                 setStep('upload');

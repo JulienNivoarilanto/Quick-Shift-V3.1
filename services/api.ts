@@ -150,11 +150,12 @@ export const apiCreateStripeCheckoutSession = async (data: CheckoutSessionData |
     try {
         const result = await createSession(data);
         console.log("Full response from createStripeCheckoutSession function:", result);
-        const { url } = result.data as any;
+        const responseData = result.data as any;
+        const url = responseData.checkoutUrl; // Use checkoutUrl as per user feedback
         if (url) {
             window.location.href = url;
         } else {
-            console.error("Cloud function response data did not contain a URL.", result.data);
+            console.error("Cloud function response data did not contain a 'checkoutUrl'.", responseData);
             throw new Error("Cloud function did not return a URL.");
         }
     } catch (error) {
@@ -168,11 +169,13 @@ export const apiCreateStripePortalSession = async (userId: string, email: string
     try {
         const result = await createPortal({ userId, email });
         console.log("Full response from createStripePortalSession function:", result);
-        const { url } = result.data as any;
+        const responseData = result.data as any;
+        // Check for common URL property names for portal session
+        const url = responseData.url || responseData.portalUrl || responseData.checkoutUrl; 
         if (url) {
             window.location.href = url;
         } else {
-            console.error("Cloud function response data did not contain a URL.", result.data);
+            console.error("Cloud function response data did not contain a URL property.", responseData);
             throw new Error("Cloud function did not return a URL.");
         }
     } catch (error) {
@@ -411,7 +414,6 @@ export const apiGetMobileData = async (employeeId: string, companyId: string): P
             allEmployeesSnapshot
         ] = await Promise.all([
             shiftsQuery.get(),
-            // FIX: Block-scoped variable 'absenceTypesSnapshot' used before its declaration. Changed to use 'absenceTypesQuery'.
             absenceTypesQuery.get(),
             locationsQuery.get(),
             departmentsQuery.get(),
