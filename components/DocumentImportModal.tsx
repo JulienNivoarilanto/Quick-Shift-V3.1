@@ -97,7 +97,7 @@ const DocumentImportModal: React.FC<DocumentImportModalProps> = ({ onClose, onIm
                 if (err instanceof Error) {
                     setError(err.message);
                 } else {
-                    // FIX: In a catch block, `err` is of type `unknown`. Explicitly cast it to a string before setting the state.
+                    // Fix: The 'err' variable in a catch block is of type 'unknown'. Explicitly convert it to a string before passing to setError.
                     setError(String(err));
                 }
                 setStep('upload');

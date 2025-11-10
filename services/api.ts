@@ -318,9 +318,10 @@ export const getUserData = async (userId: string): Promise<{ user: User, subscri
             subscription = docWithId(subSnapshot.docs[0]) as Subscription;
 
             // Fetch payment history for this subscription
-            const paymentQuery = db.collection('payments').where('subscriptionId', '==', subscription.id).orderBy('date', 'desc');
+            const paymentQuery = db.collection('payments').where('subscriptionId', '==', subscription.id);
             const paymentSnapshot = await paymentQuery.get();
             paymentHistory = paymentSnapshot.docs.map(doc => docWithId(doc) as Payment);
+            paymentHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         }
     }
 
@@ -417,7 +418,7 @@ export const apiGetMobileData = async (employeeId: string, companyId: string): P
         const absenceTypesQuery = db.collection('absenceTypes').where('companyId', '==', companyId);
         const locationsQuery = db.collection('locations').where('companyId', '==', companyId);
         const departmentsQuery = db.collection('departments').where('companyId', '==', companyId);
-        const inboxMessagesQuery = db.collection('inboxMessages').where('companyId', '==', companyId).where('employeeId', '==', employeeId).orderBy('date', 'desc').limit(10);
+        const inboxMessagesQuery = db.collection('inboxMessages').where('companyId', '==', companyId).where('employeeId', '==', employeeId);
         const allEmployeesQuery = db.collection('employees').where('companyId', '==', companyId);
 
         const [
@@ -437,6 +438,7 @@ export const apiGetMobileData = async (employeeId: string, companyId: string): P
             inboxMessagesQuery.get(),
             meetingsAsParticipantQuery.get(),
             meetingsAsOrganizerQuery.get(),
+            // Fix: Use the query variable 'allEmployeesQuery' instead of the undeclared 'allEmployeesSnapshot'.
             allEmployeesQuery.get(),
         ]);
         
@@ -444,7 +446,10 @@ export const apiGetMobileData = async (employeeId: string, companyId: string): P
         const absenceTypes = absenceTypesSnapshot.docs.map(docWithId);
         const locations = locationsSnapshot.docs.map(docWithId);
         const departments = departmentsSnapshot.docs.map(docWithId);
-        const inboxMessages = inboxMessagesSnapshot.docs.map(docWithId);
+        const inboxMessages = inboxMessagesSnapshot.docs
+            .map(docWithId)
+            .sort((a, b) => b.date.getTime() - a.date.getTime())
+            .slice(0, 10);
         
         const meetingsMap = new Map<string, Meeting>();
         meetingsAsParticipantSnapshot.docs.map(docWithId).forEach(m => meetingsMap.set(m.id, m));
