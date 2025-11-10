@@ -652,24 +652,23 @@ const SubscriptionTab: React.FC = () => {
             </div>
         );
     }
-    
-    if (!subscription) {
-        return (
-            <div className="flex flex-col items-center justify-center p-8">
-                <Loader2 className="animate-spin text-slate-400"/>
-                <p className="mt-2 text-sm text-slate-500">Loading subscription details...</p>
-            </div>
-        );
-    }
 
     return (
         <div className="space-y-4">
             <h4 className="font-bold text-lg text-slate-800 dark:text-slate-100">{t('profile.currentPlanStatus')}</h4>
-            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg space-y-3">
-                <div className="flex justify-between items-center"><span className="text-sm font-medium text-slate-500">{t('profile.currentPlan')}</span><span className="font-semibold">{subscription.plan}</span></div>
-                <div className="flex justify-between items-center"><span className="text-sm font-medium text-slate-500">{t('profile.status')}</span><StatusBadge status={subscription.status} /></div>
-                <div className="flex justify-between items-center"><span className="text-sm font-medium text-slate-500">{t('profile.nextPayment')}</span><span className="font-semibold">{new Date(subscription.nextPaymentDate).toLocaleDateString()}</span></div>
-            </div>
+            {subscription ? (
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg space-y-3">
+                    <div className="flex justify-between items-center"><span className="text-sm font-medium text-slate-500">{t('profile.currentPlan')}</span><span className="font-semibold">{subscription.plan}</span></div>
+                    <div className="flex justify-between items-center"><span className="text-sm font-medium text-slate-500">{t('profile.status')}</span><StatusBadge status={subscription.status} /></div>
+                    <div className="flex justify-between items-center"><span className="text-sm font-medium text-slate-500">{t('profile.nextPayment')}</span><span className="font-semibold">{new Date(subscription.nextPaymentDate).toLocaleDateString()}</span></div>
+                </div>
+            ) : (
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg space-y-3">
+                    <div className="flex justify-between items-center"><span className="text-sm font-medium text-slate-500">{t('profile.currentPlan')}</span><span className="font-semibold">{user.plan}</span></div>
+                    <div className="flex justify-between items-center"><span className="text-sm font-medium text-slate-500">{t('profile.status')}</span><span>-</span></div>
+                    <div className="flex justify-between items-center"><span className="text-sm font-medium text-slate-500">{t('profile.nextPayment')}</span><span>-</span></div>
+                </div>
+            )}
             <p className="text-sm text-slate-600 dark:text-slate-400">{t('profile.manageSubscriptionDesc')}</p>
             <button 
                 onClick={() => handleStripeAction('portal')} 

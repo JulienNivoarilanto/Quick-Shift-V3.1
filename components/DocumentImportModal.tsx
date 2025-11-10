@@ -99,7 +99,7 @@ const DocumentImportModal: React.FC<DocumentImportModalProps> = ({ onClose, onIm
                 if (err instanceof Error) {
                     setError(err.message);
                 } else {
-                    // Fix: Cast error to string to resolve 'Type 'unknown' is not assignable to type 'string'.' error.
+                    // FIX: Cast error to string to resolve 'Type 'unknown' is not assignable to type 'string'.' error.
                     setError(String(err));
                 }
                 setStep('upload');

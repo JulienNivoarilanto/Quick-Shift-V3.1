@@ -638,7 +638,7 @@
     },
     "registrationSuccessTitle": "Inscription réussie !",
     "registrationSuccessBody": "Un lien de vérification a été envoyé à <strong>{email}</strong>. Veuillez consulter votre boîte de réception pour activer votre compte.",
-    "paymentSuccessBody": "Votre paiement a été effectué avec succès ! Votre compte est en cours de création. Un lien de vérification sera bientôt envoyé à votre adresse e-mail. Veuillez consulter votre boîte de réception pour activer votre compte.",
+    "paymentSuccessBody": "Your payment was successful! Your account has been created. To activate it, please proceed to login. A verification email will be sent to you upon your first login attempt.",
     "proceedToLogin": "Retour à la connexion",
     "forgotPasswordTitle": "Mot de passe oublié ?",
     "forgotPasswordInstruction": "Entrez votre adresse e-mail et nous vous enverrons un lien pour réinitialiser votre mot de passe.",

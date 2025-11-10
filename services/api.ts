@@ -71,6 +71,7 @@ export const apiLogin = async (email: string, pass: string): Promise<LoginResult
     try {
         const userCredential = await auth.signInWithEmailAndPassword(email, pass);
         if (userCredential.user && !userCredential.user.emailVerified) {
+            await userCredential.user.sendEmailVerification();
             await auth.signOut(); 
             return { success: false, reason: 'unverified' };
         }
