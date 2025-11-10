@@ -1,14 +1,13 @@
 
-
 import React, { useState } from 'react';
-import { Employee, ContractType } from '../types';
+// FIX: Corrected imports for Document types and removed unused ones.
+import { Employee, DocumentType, EmployeeDocument } from '../types';
 import Modal from './Modal';
 import { Upload, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
-type ImportableEmployee = Omit<Employee, 'id' | 'avatarUrl' | 'companyId'>;
-
-const CONTRACT_TYPES: ContractType[] = ['permanent', 'temporary', 'internship', 'volunteer', 'interim', 'apprenticeship', 'professionalization', 'part-time', 'seasonal'];
+// FIX: Defined ImportableDocument type.
+type ImportableDocument = Omit<EmployeeDocument, 'id' | 'companyId'>;
 
 
 interface DocumentImportModalProps {

@@ -668,7 +668,8 @@
     "paymentFailedError": "Le paiement a échoué. Veuillez vérifier les détails de votre carte et réessayer.",
     "back": "Retour à l'étape précédente",
     "initializingPayment": "Initialisation du paiement sécurisé...",
-    "redirectingToStripe": "Redirection vers Stripe..."
+    "redirectingToStripe": "Redirection vers Stripe...",
+    "finalizingAccount": "Finalisation de la configuration de votre compte..."
   },
   "pricing": {
     "perMonth": "/mois",

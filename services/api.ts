@@ -305,12 +305,28 @@ export const getUserData = async (userId: string): Promise<{ user: User, subscri
         return null;
     }
 
-    const user = docWithId(userDoc);
-    
+    const user = docWithId(userDoc) as User;
+
+    let subscription: Subscription | null = null;
+    let paymentHistory: Payment[] = [];
+
+    if (user.companyId) {
+        const subQuery = db.collection('subscriptions').where('companyId', '==', user.companyId).limit(1);
+        const subSnapshot = await subQuery.get();
+        if (!subSnapshot.empty) {
+            subscription = docWithId(subSnapshot.docs[0]) as Subscription;
+
+            // Fetch payment history for this subscription
+            const paymentQuery = db.collection('payments').where('subscriptionId', '==', subscription.id).orderBy('date', 'desc');
+            const paymentSnapshot = await paymentQuery.get();
+            paymentHistory = paymentSnapshot.docs.map(doc => docWithId(doc) as Payment);
+        }
+    }
+
     return {
         user,
-        subscription: null, 
-        paymentHistory: []    
+        subscription, 
+        paymentHistory
     };
 };
 

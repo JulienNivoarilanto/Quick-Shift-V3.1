@@ -11,7 +11,8 @@ import { MobileAuthProvider } from './contexts/MobileAuthContext';
 import { MobileDataProvider } from './contexts/MobileDataContext';
 import LoadingSpinner from './components/LoadingSpinner';
 import * as api from './services/api';
-import { MailCheck } from 'lucide-react';
+import { MailCheck, Loader2 } from 'lucide-react';
+import firebase from 'firebase/compat/app';
 
 
 const rootElement = document.getElementById('root');
@@ -39,10 +40,53 @@ const MobileAppWrapper = ({ installPrompt, onInstall }: { installPrompt: Event |
 
 const RegistrationVerificationView = ({ email }: { email: string | null }) => {
     const { t } = useLanguage();
+    const [isChecking, setIsChecking] = useState(!!email);
+    const [isUserFound, setIsUserFound] = useState(false);
 
-    const message = email
-        ? t('auth.registrationSuccessBody', { email: `<strong>${email}</strong>` })
-        : t('auth.paymentSuccessBody');
+    useEffect(() => {
+        if (!email) {
+            // Fallback for flows without email, just wait 5s.
+            const timer = setTimeout(() => setIsChecking(false), 5000);
+            return () => clearTimeout(timer);
+        }
+
+        // Poll for user creation by webhook.
+        const pollInterval = 2000; // every 2 seconds
+        const maxAttempts = 10; // for 20 seconds
+        let attempts = 0;
+        let intervalId: number;
+
+        const pollForUser = async () => {
+            attempts++;
+            try {
+                const methods = await firebase.auth().fetchSignInMethodsForEmail(email);
+                if (methods.length > 0) {
+                    setIsUserFound(true);
+                    setIsChecking(false);
+                    // The backend (Stripe webhook or auth.onCreate trigger) is responsible for sending the verification email.
+                    // This polling confirms account creation for a better UX.
+                    clearInterval(intervalId);
+                } else if (attempts >= maxAttempts) {
+                    setIsChecking(false); // Stop checking after timeout
+                    clearInterval(intervalId);
+                }
+            } catch (error) {
+                console.error("Polling for user failed:", error);
+                setIsChecking(false); // Stop on error
+                clearInterval(intervalId);
+            }
+        };
+
+        // Start polling
+        intervalId = setInterval(pollForUser, pollInterval);
+        // Initial check
+        pollForUser();
+
+        // Cleanup
+        return () => clearInterval(intervalId);
+    }, [email]);
+
+    const message = t('auth.paymentSuccessBody');
 
     return (
         <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-blue-night-950">
@@ -53,15 +97,27 @@ const RegistrationVerificationView = ({ email }: { email: string | null }) => {
                     </div>
                 </div>
                 <h2 className="text-2xl font-bold text-green-600">{t('auth.registrationSuccessTitle')}</h2>
-                <p 
+                <p
                     className="mt-2 text-gray-600 dark:text-gray-400"
-                    dangerouslySetInnerHTML={{
-                        __html: message
-                    }}
+                    dangerouslySetInnerHTML={{ __html: message }}
                 />
-                <a href="/" className="mt-6 inline-block bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg">
-                    {t('auth.proceedToLogin')}
-                </a>
+                <div className="mt-6">
+                    {isChecking ? (
+                        <div className="flex flex-col items-center animate-slide-in-up">
+                            <div className="flex items-center text-gray-500 dark:text-gray-400">
+                                <Loader2 className="animate-spin mr-2" />
+                                <span>{t('auth.finalizingAccount')}</span>
+                            </div>
+                            <button disabled className="mt-2 inline-block bg-blue-400 text-white font-semibold py-2 px-4 rounded-lg cursor-wait">
+                                {t('auth.proceedToLogin')}
+                            </button>
+                        </div>
+                    ) : (
+                        <a href="/" className="inline-block bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg animate-slide-in-up">
+                            {t('auth.proceedToLogin')}
+                        </a>
+                    )}
+                </div>
             </div>
         </div>
     );
