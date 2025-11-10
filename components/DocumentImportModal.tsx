@@ -1,12 +1,10 @@
 
 import React, { useState } from 'react';
-// FIX: Corrected imports for Document types and removed unused ones.
 import { Employee, DocumentType, EmployeeDocument } from '../types';
 import Modal from './Modal';
 import { Upload, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
-// FIX: Defined ImportableDocument type.
 type ImportableDocument = Omit<EmployeeDocument, 'id' | 'companyId'>;
 
 
@@ -99,7 +97,7 @@ const DocumentImportModal: React.FC<DocumentImportModalProps> = ({ onClose, onIm
                 if (err instanceof Error) {
                     setError(err.message);
                 } else {
-                    // FIX: Cast error to string to resolve 'Type 'unknown' is not assignable to type 'string'.' error.
+                    // FIX: In a catch block, `err` is of type `unknown`. Explicitly cast it to a string before setting the state.
                     setError(String(err));
                 }
                 setStep('upload');
