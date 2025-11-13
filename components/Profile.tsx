@@ -3,11 +3,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { User, BusinessType, ActivitySector, Subscription, UserRole, UserPermissions, Plan } from '../types';
 import Avatar from './Avatar';
-import { Edit, Save, Lock, Gem, Building, MapPin, Briefcase, AlertTriangle, CheckCircle, User as UserIcon, HelpCircle, Users, Plus, Trash2, ChevronDown, Eye, EyeOff, Circle, Search, Loader2, Phone, ExternalLink } from 'lucide-react';
+import { Edit, Save, Lock, Gem, Building, MapPin, Briefcase, AlertTriangle, CheckCircle, User as UserIcon, HelpCircle, Users, Plus, Trash2, ChevronDown, Eye, EyeOff, Circle, Search, Loader2, Phone, ExternalLink, Info, Check } from 'lucide-react';
 import UserGuide from './UserGuide';
 import Modal from './Modal';
 import { apiCreateStripeCheckoutSession, apiCreateStripePortalSession } from '../services/api';
-import Pricing from './Pricing';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 // #region Helper Components
 const resizeImage = (file: File, maxWidth: number): Promise<string> => {
@@ -601,7 +601,9 @@ const UserManagementTab: React.FC<{
 const SubscriptionTab: React.FC = () => {
     const { user, subscription, isCompanyOwner } = useAuth();
     const { t } = useLanguage();
+    const { formatCurrency } = useCurrency();
     const [isRedirecting, setIsRedirecting] = useState<string | null>(null);
+    const [detailsModalPlan, setDetailsModalPlan] = useState<Plan | null>(null);
 
     if (!user) return null;
     
@@ -629,6 +631,33 @@ const SubscriptionTab: React.FC = () => {
         }
     };
 
+    const planDetails: { [key in Plan]: { key: string; isFeatured: boolean; featureCount: number } } = {
+        'Gratuit': { key: 'freePlan', isFeatured: false, featureCount: 7 },
+        'Pro': { key: 'proPlan', isFeatured: true, featureCount: 9 },
+        'Pro Plus': { key: 'proPlusPlan', isFeatured: false, featureCount: 13 },
+    };
+
+    const PlanDetailsModal: React.FC<{ planName: Plan; onClose: () => void }> = ({ planName, onClose }) => {
+        const planInfo = planDetails[planName];
+        const features = Array.from({ length: planInfo.featureCount }, (_, i) => t(`pricing.${planInfo.key}Feature${i + 1}`));
+        const planTitle = t(`pricing.${planInfo.key}Name`);
+        const planDescription = t(`pricing.${planInfo.key}Desc`);
+
+        return (
+            <Modal isOpen={true} onClose={onClose} title={planTitle}>
+                <p className="text-slate-600 dark:text-slate-400 mb-6">{planDescription}</p>
+                <ul className="space-y-3">
+                    {features.map((feature, index) => (
+                        <li key={index} className="flex items-start">
+                            <Check className="w-5 h-5 mr-3 flex-shrink-0 text-green-500" />
+                            <span>{feature}</span>
+                        </li>
+                    ))}
+                </ul>
+            </Modal>
+        );
+    };
+
     if (isRedirecting) {
         return (
             <div className="flex flex-col items-center justify-center p-8">
@@ -651,7 +680,53 @@ const SubscriptionTab: React.FC = () => {
                     <h4 className="text-lg font-bold">{t('profile.upgradePlan')}</h4>
                     <p className="text-sm text-slate-500 mt-1 max-w-2xl mx-auto">{t('profile.upgradeToProDesc')}</p>
                 </div>
-                <Pricing onSelectPlan={handlePlanSelect} />
+
+                <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+                    {(['Pro', 'Pro Plus'] as Plan[]).map(planName => {
+                        const plan = planDetails[planName];
+                        const price = Number(t(`pricing.${plan.key}Price`));
+                        return (
+                            <div
+                                key={plan.key}
+                                className={`rounded-xl p-6 border transition-transform duration-300 flex flex-col ${
+                                    plan.isFeatured 
+                                    ? 'bg-blue-night-900 text-white border-blue-700 dark:border-blue-night-700 scale-105 shadow-xl' 
+                                    : 'bg-white dark:bg-blue-night-900 border-gray-200 dark:border-blue-night-800 hover:scale-105'
+                                }`}
+                            >
+                                <div className="flex-grow">
+                                    <div className="flex justify-between items-start">
+                                        <h3 className="text-xl font-bold">{t(`pricing.${plan.key}Name`)}</h3>
+                                        <button onClick={() => setDetailsModalPlan(planName)} className="p-1 rounded-full hover:bg-white/10 dark:hover:bg-slate-700 text-slate-400 hover:text-white transition-colors" title={t('modals.details')}>
+                                            <Info size={18} />
+                                        </button>
+                                    </div>
+                                    <p className="mt-4 text-4xl font-extrabold">
+                                        {formatCurrency(price)}
+                                        <span className="text-base font-medium">{t('pricing.perMonth')}</span>
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => handlePlanSelect(planName)}
+                                    className={`w-full mt-6 py-2 px-4 rounded-lg font-semibold transition-colors duration-300 ${
+                                        plan.isFeatured
+                                        ? 'bg-white text-blue-600 hover:bg-gray-200 dark:text-blue-night-900 dark:hover:bg-blue-night-200'
+                                        : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-night-200 dark:text-blue-night-900 dark:hover:bg-blue-night-300'
+                                    }`}
+                                >
+                                    {t('pricing.choosePlan')}
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
+                
+                {detailsModalPlan && (
+                    <PlanDetailsModal 
+                        planName={detailsModalPlan} 
+                        onClose={() => setDetailsModalPlan(null)} 
+                    />
+                )}
             </div>
         );
     }

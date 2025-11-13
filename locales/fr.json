@@ -1,3 +1,4 @@
+
 {
   "appName": "Quick Shift",
   "sidebar": {
@@ -425,7 +426,7 @@
     "phoneLabel": "Numéro de téléphone",
     "genderLabel": "Genre",
     "roleLabel": "Rôle",
-    "details": "Détails",
+    "details": "Voir les détails",
     "availability": "Disponibilité",
     "absenceTypeLabel": "Type d'absence",
     "dateLabel": "Date",
