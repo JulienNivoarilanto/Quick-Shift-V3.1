@@ -146,7 +146,7 @@ export interface CheckoutSessionData {
   address?: string;
 }
 
-export const apiCreateStripeCheckoutSession = async (data: CheckoutSessionData | { userId: string; plan: Plan; email: string }) => {
+export const apiCreateStripeCheckoutSession = async (data: CheckoutSessionData | { userId: string; plan: Plan; email: string; companyId: string; }) => {
     const createSession = functions.httpsCallable('createStripeCheckoutSession');
     try {
         const result = await createSession(data);

@@ -615,7 +615,7 @@ const SubscriptionTab: React.FC = () => {
             if (type === 'portal' && user) {
                 await apiCreateStripePortalSession(user.id, user.email);
             } else if (type === 'checkout' && plan && user) {
-                await apiCreateStripeCheckoutSession({ userId: user.id, plan, email: user.email });
+                await apiCreateStripeCheckoutSession({ userId: user.id, plan, email: user.email, companyId: user.companyId });
             }
         } catch (error) {
             console.error(`Failed to create Stripe ${type} session`, error);
