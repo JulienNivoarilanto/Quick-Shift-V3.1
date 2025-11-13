@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Employee, DocumentType, EmployeeDocument } from '../types';
 import Modal from './Modal';
@@ -97,8 +96,8 @@ const DocumentImportModal: React.FC<DocumentImportModalProps> = ({ onClose, onIm
                 if (err instanceof Error) {
                     setError(err.message);
                 } else {
-                    // FIX: The 'err' variable in a catch block is of type 'unknown'. Explicitly convert it to a string before passing to setError.
-                    setError(String(err));
+                    // FIX: Use a template literal for safer string conversion of the unknown error type.
+                    setError(`${err}`);
                 }
                 setStep('upload');
                 setFileName('');
@@ -114,6 +113,7 @@ const DocumentImportModal: React.FC<DocumentImportModalProps> = ({ onClose, onIm
 
     const handleConfirmImport = () => {
         onImport(parsedData);
+        // FIX: Close the modal after a successful import.
         onClose();
     };
 

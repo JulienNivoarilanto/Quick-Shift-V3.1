@@ -146,7 +146,17 @@ export interface CheckoutSessionData {
   address?: string;
 }
 
-export const apiCreateStripeCheckoutSession = async (data: CheckoutSessionData | { userId: string; plan: Plan; email: string; companyId: string; }) => {
+export const apiCreateStripeCheckoutSession = async (data: CheckoutSessionData | {
+    userId: string;
+    plan: Plan;
+    email:string;
+    companyId: string;
+    name: string;
+    companyName: string;
+    businessType: BusinessType;
+    activitySector?: ActivitySector;
+    address?: string;
+}) => {
     const createSession = functions.httpsCallable('createStripeCheckoutSession');
     try {
         const result = await createSession(data);

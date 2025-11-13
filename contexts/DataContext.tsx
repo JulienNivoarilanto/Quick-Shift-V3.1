@@ -268,38 +268,32 @@ export const DataProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     const handleUpdateShifts = (updatedShifts: Shift[]) => api.apiUpdateAllShifts(updatedShifts, user!.companyId);
     const handleDeleteMultipleShifts = (shiftIds: string[]) => api.apiBulkDeleteShifts(shiftIds);
 
-    // FIX: Changed function to be async and await the API call to match the Promise<void> return type in the interface.
     const handleAddRole = async (name: string) => { await api.apiCreateItem('roles', { name, companyId: user!.companyId }) };
-    const handleUpdateRole = (id: string, name: string) => api.apiUpdateItem('roles', id, { id, name, companyId: user!.companyId });
-    const handleDeleteRole = (id: string) => api.apiDeleteItem('roles', id);
+    const handleUpdateRole = async (id: string, name: string) => { await api.apiUpdateItem('roles', id, { id, name, companyId: user!.companyId }) };
+    const handleDeleteRole = async (id: string) => { await api.apiDeleteItem('roles', id) };
 
-    // FIX: Changed function to be async and await the API call to match the Promise<void> return type in the interface.
     const handleAddLocation = async (name: string, address?: string, latitude?: number, longitude?: number, radius?: number, isGeofencingEnabled?: boolean) => { await api.apiCreateItem('locations', { name, address, latitude, longitude, radius, isGeofencingEnabled, companyId: user!.companyId }) };
-    const handleUpdateLocation = (id: string, name: string, address?: string | null, latitude?: number | null, longitude?: number | null, radius?: number | null, isGeofencingEnabled?: boolean) => api.apiUpdateItem('locations', id, { id, name, address, latitude, longitude, radius, isGeofencingEnabled, companyId: user!.companyId });
-    const handleDeleteLocation = (id: string) => api.apiDeleteItem('locations', id);
+    const handleUpdateLocation = async (id: string, name: string, address?: string | null, latitude?: number | null, longitude?: number | null, radius?: number | null, isGeofencingEnabled?: boolean) => { await api.apiUpdateItem('locations', id, { id, name, address, latitude, longitude, radius, isGeofencingEnabled, companyId: user!.companyId }) };
+    const handleDeleteLocation = async (id: string) => { await api.apiDeleteItem('locations', id) };
 
-    // FIX: Changed function to be async and await the API call to match the Promise<void> return type in the interface.
     const handleAddDepartment = async (name: string) => { await api.apiCreateItem('departments', { name, companyId: user!.companyId }) };
-    const handleUpdateDepartment = (id: string, name: string) => api.apiUpdateItem('departments', id, { id, name, companyId: user!.companyId });
-    const handleDeleteDepartment = (id: string) => api.apiDeleteItem('departments', id);
+    const handleUpdateDepartment = async (id: string, name: string) => { await api.apiUpdateItem('departments', id, { id, name, companyId: user!.companyId }) };
+    const handleDeleteDepartment = async (id: string) => { await api.apiDeleteItem('departments', id) };
 
-    // FIX: Changed function to be async and await the API call to match the Promise<void> return type in the interface.
     const handleAddTeam = async (teamData: Omit<Team, 'id' | 'companyId'>) => { await api.apiCreateItem('teams', { ...teamData, companyId: user!.companyId }) };
-    const handleUpdateTeam = (team: Team) => api.apiUpdateItem('teams', team.id, team);
-    const handleDeleteTeam = (teamId: string) => api.apiDeleteItem('teams', teamId);
+    const handleUpdateTeam = async (team: Team) => { await api.apiUpdateItem('teams', team.id, team) };
+    const handleDeleteTeam = async (teamId: string) => { await api.apiDeleteItem('teams', teamId) };
     
-    // FIX: Changed function to be async and await the API call to match the Promise<void> return type in the interface.
     const handleAddAbsenceType = async (name: string, color: string) => { await api.apiCreateItem('absenceTypes', { name, color, companyId: user!.companyId }) };
-    const handleUpdateAbsenceType = (id: string, name: string, color: string) => api.apiUpdateItem('absenceTypes', id, { id, name, color, companyId: user!.companyId });
-    const handleDeleteAbsenceType = (id: string) => api.apiDeleteItem('absenceTypes', id);
+    const handleUpdateAbsenceType = async (id: string, name: string, color: string) => { await api.apiUpdateItem('absenceTypes', id, { id, name, color, companyId: user!.companyId }) };
+    const handleDeleteAbsenceType = async (id: string) => { await api.apiDeleteItem('absenceTypes', id) };
     
     const handleSaveAbsence = (absence: Absence) => handleSaveItem('absences', absence, !state.absences.some(a => a.id === absence.id));
     const handleDeleteAbsence = (absenceId: string) => handleDeleteItem('absences', absenceId);
     
-    // FIX: Changed function to be async and await the API call to match the Promise<void> return type in the interface.
     const handleAddSpecialDayType = async (name: string, isHoliday: boolean) => { await api.apiCreateItem('specialDayTypes', { name, isHoliday, companyId: user!.companyId }) };
-    const handleUpdateSpecialDayType = (id: string, name: string, isHoliday: boolean) => api.apiUpdateItem('specialDayTypes', id, { id, name, isHoliday, companyId: user!.companyId });
-    const handleDeleteSpecialDayType = (id: string) => api.apiDeleteItem('specialDayTypes', id);
+    const handleUpdateSpecialDayType = async (id: string, name: string, isHoliday: boolean) => { await api.apiUpdateItem('specialDayTypes', id, { id, name, isHoliday, companyId: user!.companyId }) };
+    const handleDeleteSpecialDayType = async (id: string) => { await api.apiDeleteItem('specialDayTypes', id) };
 
     const handleSaveSpecialDay = (specialDay: SpecialDay) => handleSaveItem('specialDays', specialDay, !state.specialDays.some(sd => sd.id === specialDay.id));
     const handleDeleteSpecialDay = (specialDayId: string) => handleDeleteItem('specialDays', specialDayId);
@@ -388,10 +382,9 @@ export const DataProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         }
     };
 
-    // FIX: Changed function to be async and await the API call to match the Promise<void> return type in the interface.
     const handleAddDocumentType = async (name: string, isUnique: boolean) => { await api.apiCreateItem('documentTypes', { name, isUnique, companyId: user!.companyId }) };
-    const handleUpdateDocumentType = (id: string, name: string, isUnique: boolean) => api.apiUpdateItem('documentTypes', id, { id, name, isUnique, companyId: user!.companyId });
-    const handleDeleteDocumentType = (id: string) => api.apiDeleteItem('documentTypes', id);
+    const handleUpdateDocumentType = async (id: string, name: string, isUnique: boolean) => { await api.apiUpdateItem('documentTypes', id, { id, name, isUnique, companyId: user!.companyId }) };
+    const handleDeleteDocumentType = async (id: string) => { await api.apiDeleteItem('documentTypes', id) };
 
     const handleSaveMeeting = (meeting: Meeting) => handleSaveItem('meetings', meeting, !state.meetings.some(m => m.id === meeting.id));
     const handleDeleteMeeting = (meetingId: string) => handleDeleteItem('meetings', meetingId);
