@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { User, BusinessType, ActivitySector, Subscription, UserRole, UserPermissions } from '../types';
+import { User, BusinessType, ActivitySector, Subscription, UserRole, UserPermissions, Plan } from '../types';
 import Avatar from './Avatar';
 import { Edit, Save, Lock, Gem, Building, MapPin, Briefcase, AlertTriangle, CheckCircle, User as UserIcon, HelpCircle, Users, Plus, Trash2, ChevronDown, Eye, EyeOff, Circle, Search, Loader2, Phone, ExternalLink } from 'lucide-react';
 import UserGuide from './UserGuide';
 import Modal from './Modal';
 import { apiCreateStripeCheckoutSession, apiCreateStripePortalSession } from '../services/api';
+import Pricing from './Pricing';
 
 // #region Helper Components
 const resizeImage = (file: File, maxWidth: number): Promise<string> => {
@@ -620,6 +621,13 @@ const SubscriptionTab: React.FC = () => {
             setIsRedirecting(null);
         }
     };
+    
+    const handlePlanSelect = (plan: Plan) => {
+        if (plan === 'Gratuit') return;
+        if (plan === 'Pro' || plan === 'Pro Plus') {
+            handleStripeAction('checkout', plan);
+        }
+    };
 
     if (isRedirecting) {
         return (
@@ -638,17 +646,12 @@ const SubscriptionTab: React.FC = () => {
 
     if (user.plan === 'Gratuit') {
         return (
-            <div className="text-center space-y-4">
-                <h4 className="text-lg font-semibold">{t('profile.upgradePlan')}</h4>
-                <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">{t('profile.upgradeToProDesc')}</p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
-                    <button onClick={() => handleStripeAction('checkout', 'Pro')} className="btn-primary flex-1">
-                        {t('profile.upgradeTo', { planName: 'Pro' })}
-                    </button>
-                    <button onClick={() => handleStripeAction('checkout', 'Pro Plus')} className="btn-primary flex-1">
-                        {t('profile.upgradeTo', { planName: 'Pro Plus' })}
-                    </button>
+            <div className="space-y-6">
+                <div className="text-center">
+                    <h4 className="text-lg font-bold">{t('profile.upgradePlan')}</h4>
+                    <p className="text-sm text-slate-500 mt-1 max-w-2xl mx-auto">{t('profile.upgradeToProDesc')}</p>
                 </div>
+                <Pricing onSelectPlan={handlePlanSelect} />
             </div>
         );
     }
