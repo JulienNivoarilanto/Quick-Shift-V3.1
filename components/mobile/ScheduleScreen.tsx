@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useMobileData } from '../../contexts/MobileDataContext';
 import { useLanguage } from '../../contexts/LanguageContext';

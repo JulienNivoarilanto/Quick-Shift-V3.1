@@ -156,6 +156,7 @@ export const apiCreateStripeCheckoutSession = async (data: CheckoutSessionData |
     businessType: BusinessType;
     activitySector?: ActivitySector;
     address?: string;
+    password?: string;
 }) => {
     const createSession = functions.httpsCallable('createStripeCheckoutSession');
     try {

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import Modal from './Modal';
 import { Employee } from '../types';
@@ -23,7 +24,6 @@ const DashboardExportModal: React.FC<DashboardExportModalProps> = ({ isOpen, onC
     const { t } = useLanguage();
     const [isGenerating, setIsGenerating] = useState(false);
     
-    // FIX: Removed unused filter and format state variables. This modal only exports to CSV and doesn't have filter inputs.
     const availableColumns = useMemo(() => [
         { id: 'name', label: t('dashboard.csvHeaderStaff') },
         { id: 'email', label: t('dashboard.csvHeaderEmail') },

@@ -599,22 +599,23 @@ const UserManagementTab: React.FC<{
 };
 
 const SubscriptionTab: React.FC = () => {
-    const { user, subscription, isCompanyOwner } = useAuth();
+    const { user, subscription, isCompanyOwner, reauthenticate } = useAuth();
     const { t } = useLanguage();
     const { formatCurrency } = useCurrency();
     const [isRedirecting, setIsRedirecting] = useState<string | null>(null);
     const [detailsModalPlan, setDetailsModalPlan] = useState<Plan | null>(null);
+    const [confirmUpgradeState, setConfirmUpgradeState] = useState<{isOpen: boolean, plan: Plan | null}>({isOpen: false, plan: null});
 
     if (!user) return null;
     
-    const handleStripeAction = async (type: 'checkout' | 'portal', plan?: 'Pro' | 'Pro Plus') => {
+    const handleStripeAction = async (type: 'checkout' | 'portal', plan?: 'Pro' | 'Pro Plus', password?: string) => {
         const message = type === 'checkout' ? t('profile.redirectingToCheckout') : t('profile.redirectingToPortal');
         setIsRedirecting(message);
 
         try {
             if (type === 'portal' && user) {
                 await apiCreateStripePortalSession(user.id, user.email);
-            } else if (type === 'checkout' && plan && user) {
+            } else if (type === 'checkout' && plan && user && password) {
                 await apiCreateStripeCheckoutSession({
                     userId: user.id,
                     plan,
@@ -625,6 +626,7 @@ const SubscriptionTab: React.FC = () => {
                     businessType: user.businessType,
                     activitySector: user.activitySector,
                     address: user.address,
+                    password: password,
                 });
             }
         } catch (error) {
@@ -637,8 +639,20 @@ const SubscriptionTab: React.FC = () => {
     const handlePlanSelect = (plan: Plan) => {
         if (plan === 'Gratuit') return;
         if (plan === 'Pro' || plan === 'Pro Plus') {
-            handleStripeAction('checkout', plan);
+            setConfirmUpgradeState({ isOpen: true, plan: plan });
         }
+    };
+
+    const handleConfirmUpgrade = async (password: string) => {
+        const { plan } = confirmUpgradeState;
+        if (!plan) return { success: false };
+
+        const reauthResult = await reauthenticate(password);
+        if (reauthResult.success) {
+            handleStripeAction('checkout', plan as 'Pro' | 'Pro Plus', password);
+            setConfirmUpgradeState({ isOpen: false, plan: null });
+        }
+        return reauthResult;
     };
 
     const planDetails: { [key in Plan]: { key: string; isFeatured: boolean; featureCount: number } } = {
@@ -735,6 +749,15 @@ const SubscriptionTab: React.FC = () => {
                     <PlanDetailsModal 
                         planName={detailsModalPlan} 
                         onClose={() => setDetailsModalPlan(null)} 
+                    />
+                )}
+                {confirmUpgradeState.isOpen && (
+                    <PasswordConfirmationModal
+                        isOpen={true}
+                        onClose={() => setConfirmUpgradeState({ isOpen: false, plan: null })}
+                        onConfirm={handleConfirmUpgrade}
+                        title={t('profile.upgradeTo', { planName: confirmUpgradeState.plan })}
+                        description={t('profile.userManagement.confirmActionDescription')}
                     />
                 )}
             </div>
