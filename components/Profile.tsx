@@ -6,7 +6,7 @@ import Avatar from './Avatar';
 import { Edit, Save, Lock, Gem, Building, MapPin, Briefcase, AlertTriangle, CheckCircle, User as UserIcon, HelpCircle, Users, Plus, Trash2, ChevronDown, Eye, EyeOff, Circle, Search, Loader2, Phone, ExternalLink, Info, Check } from 'lucide-react';
 import UserGuide from './UserGuide';
 import Modal from './Modal';
-import { apiCreateStripeCheckoutSession, apiCreateStripePortalSession } from '../services/api';
+import { apiCreateStripePortalSession } from '../services/api';
 import { useCurrency } from '../contexts/CurrencyContext';
 
 // #region Helper Components
@@ -599,87 +599,25 @@ const UserManagementTab: React.FC<{
 };
 
 const SubscriptionTab: React.FC = () => {
-    const { user, subscription, isCompanyOwner, reauthenticate } = useAuth();
+    const { user, subscription, isCompanyOwner } = useAuth();
     const { t } = useLanguage();
-    const { formatCurrency } = useCurrency();
     const [isRedirecting, setIsRedirecting] = useState<string | null>(null);
-    const [detailsModalPlan, setDetailsModalPlan] = useState<Plan | null>(null);
-    const [confirmUpgradeState, setConfirmUpgradeState] = useState<{isOpen: boolean, plan: Plan | null}>({isOpen: false, plan: null});
 
     if (!user) return null;
     
-    const handleStripeAction = async (type: 'checkout' | 'portal', plan?: 'Pro' | 'Pro Plus', password?: string) => {
-        const message = type === 'checkout' ? t('profile.redirectingToCheckout') : t('profile.redirectingToPortal');
+    const handleStripeAction = async (type: 'portal') => {
+        const message = t('profile.redirectingToPortal');
         setIsRedirecting(message);
 
         try {
             if (type === 'portal' && user) {
                 await apiCreateStripePortalSession(user.id, user.email);
-            } else if (type === 'checkout' && plan && user && password) {
-                await apiCreateStripeCheckoutSession({
-                    userId: user.id,
-                    plan,
-                    email: user.email,
-                    companyId: user.companyId,
-                    name: user.name,
-                    companyName: user.companyName,
-                    businessType: user.businessType,
-                    activitySector: user.activitySector,
-                    address: user.address,
-                    password: password,
-                });
             }
         } catch (error) {
             console.error(`Failed to create Stripe ${type} session`, error);
             alert(`Could not redirect to ${type}. Please try again.`);
             setIsRedirecting(null);
         }
-    };
-    
-    const handlePlanSelect = (plan: Plan) => {
-        if (plan === 'Gratuit') return;
-        if (plan === 'Pro' || plan === 'Pro Plus') {
-            setConfirmUpgradeState({ isOpen: true, plan: plan });
-        }
-    };
-
-    const handleConfirmUpgrade = async (password: string) => {
-        const { plan } = confirmUpgradeState;
-        if (!plan) return { success: false };
-
-        const reauthResult = await reauthenticate(password);
-        if (reauthResult.success) {
-            handleStripeAction('checkout', plan as 'Pro' | 'Pro Plus', password);
-            setConfirmUpgradeState({ isOpen: false, plan: null });
-        }
-        return reauthResult;
-    };
-
-    const planDetails: { [key in Plan]: { key: string; isFeatured: boolean; featureCount: number } } = {
-        'Gratuit': { key: 'freePlan', isFeatured: false, featureCount: 7 },
-        'Pro': { key: 'proPlan', isFeatured: true, featureCount: 9 },
-        'Pro Plus': { key: 'proPlusPlan', isFeatured: false, featureCount: 13 },
-    };
-
-    const PlanDetailsModal: React.FC<{ planName: Plan; onClose: () => void }> = ({ planName, onClose }) => {
-        const planInfo = planDetails[planName];
-        const features = Array.from({ length: planInfo.featureCount }, (_, i) => t(`pricing.${planInfo.key}Feature${i + 1}`));
-        const planTitle = t(`pricing.${planInfo.key}Name`);
-        const planDescription = t(`pricing.${planInfo.key}Desc`);
-
-        return (
-            <Modal isOpen={true} onClose={onClose} title={planTitle}>
-                <p className="text-slate-600 dark:text-slate-400 mb-6">{planDescription}</p>
-                <ul className="space-y-3">
-                    {features.map((feature, index) => (
-                        <li key={index} className="flex items-start">
-                            <Check className="w-5 h-5 mr-3 flex-shrink-0 text-green-500" />
-                            <span>{feature}</span>
-                        </li>
-                    ))}
-                </ul>
-            </Modal>
-        );
     };
 
     if (isRedirecting) {
@@ -696,74 +634,6 @@ const SubscriptionTab: React.FC = () => {
         return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${styles[status]}`}>{t(`subscription.${status.replace('_','')}`)}</span>;
     };
 
-
-    if (user.plan === 'Gratuit') {
-        return (
-            <div className="space-y-6">
-                <div className="text-center">
-                    <h4 className="text-lg font-bold">{t('profile.upgradePlan')}</h4>
-                    <p className="text-sm text-slate-500 mt-1 max-w-2xl mx-auto">{t('profile.upgradeToProDesc')}</p>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-                    {(['Pro', 'Pro Plus'] as Plan[]).map(planName => {
-                        const plan = planDetails[planName];
-                        const price = Number(t(`pricing.${plan.key}Price`));
-                        return (
-                            <div
-                                key={plan.key}
-                                className={`rounded-xl p-6 border transition-transform duration-300 flex flex-col ${
-                                    plan.isFeatured 
-                                    ? 'bg-blue-night-900 text-white border-blue-700 dark:border-blue-night-700 scale-105 shadow-xl' 
-                                    : 'bg-white dark:bg-blue-night-900 border-gray-200 dark:border-blue-night-800 hover:scale-105'
-                                }`}
-                            >
-                                <div className="flex-grow">
-                                    <div className="flex justify-between items-start">
-                                        <h3 className="text-xl font-bold">{t(`pricing.${plan.key}Name`)}</h3>
-                                        <button onClick={() => setDetailsModalPlan(planName)} className="p-1 rounded-full hover:bg-white/10 dark:hover:bg-slate-700 text-slate-400 hover:text-white transition-colors" title={t('modals.details')}>
-                                            <Info size={18} />
-                                        </button>
-                                    </div>
-                                    <p className="mt-4 text-4xl font-extrabold">
-                                        {formatCurrency(price)}
-                                        <span className="text-base font-medium">{t('pricing.perMonth')}</span>
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => handlePlanSelect(planName)}
-                                    className={`w-full mt-6 py-2 px-4 rounded-lg font-semibold transition-colors duration-300 ${
-                                        plan.isFeatured
-                                        ? 'bg-white text-blue-600 hover:bg-gray-200 dark:text-blue-night-900 dark:hover:bg-blue-night-200'
-                                        : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-night-200 dark:text-blue-night-900 dark:hover:bg-blue-night-300'
-                                    }`}
-                                >
-                                    {t('pricing.choosePlan')}
-                                </button>
-                            </div>
-                        );
-                    })}
-                </div>
-                
-                {detailsModalPlan && (
-                    <PlanDetailsModal 
-                        planName={detailsModalPlan} 
-                        onClose={() => setDetailsModalPlan(null)} 
-                    />
-                )}
-                {confirmUpgradeState.isOpen && (
-                    <PasswordConfirmationModal
-                        isOpen={true}
-                        onClose={() => setConfirmUpgradeState({ isOpen: false, plan: null })}
-                        onConfirm={handleConfirmUpgrade}
-                        title={t('profile.upgradeTo', { planName: confirmUpgradeState.plan })}
-                        description={t('profile.userManagement.confirmActionDescription')}
-                    />
-                )}
-            </div>
-        );
-    }
-
     return (
         <div className="space-y-4">
             <h4 className="font-bold text-lg text-slate-800 dark:text-slate-100">{t('profile.currentPlanStatus')}</h4>
@@ -771,7 +641,7 @@ const SubscriptionTab: React.FC = () => {
                 <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg space-y-3">
                     <div className="flex justify-between items-center"><span className="text-sm font-medium text-slate-500">{t('profile.currentPlan')}</span><span className="font-semibold">{subscription.plan}</span></div>
                     <div className="flex justify-between items-center"><span className="text-sm font-medium text-slate-500">{t('profile.status')}</span><StatusBadge status={subscription.status} /></div>
-                    <div className="flex justify-between items-center"><span className="text-sm font-medium text-slate-500">{t('profile.nextPayment')}</span><span className="font-semibold">{new Date(subscription.nextPaymentDate).toLocaleDateString()}</span></div>
+                    <div className="flex justify-between items-center"><span className="text-sm font-medium text-slate-500">{t('profile.nextPayment')}</span><span className="font-semibold">{subscription.plan === 'Gratuit' ? '-' : new Date(subscription.nextPaymentDate).toLocaleDateString()}</span></div>
                 </div>
             ) : (
                 <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg space-y-3">

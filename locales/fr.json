@@ -372,7 +372,6 @@
     },
     "currentPlanStatus": "Statut de l'abonnement",
     "upgradePlan": "Mettre à niveau votre abonnement",
-    "upgradeTo": "Mettre à niveau vers {planName}",
     "manageSubscriptionDesc": "Gérez vos informations de facturation, vos factures et les détails de votre abonnement.",
     "ownerCanManage": "L'abonnement ne peut être géré que par le propriétaire de l'entreprise.",
     "redirectingToCheckout": "Redirection vers le paiement...",

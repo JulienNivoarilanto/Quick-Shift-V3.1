@@ -372,7 +372,6 @@
     },
     "currentPlanStatus": "Current Plan Status",
     "upgradePlan": "Upgrade Your Plan",
-    "upgradeTo": "Upgrade to {planName}",
     "manageSubscriptionDesc": "Manage your billing information, invoices, and subscription details.",
     "ownerCanManage": "Subscription can only be managed by the company owner.",
     "redirectingToCheckout": "Redirecting to checkout...",

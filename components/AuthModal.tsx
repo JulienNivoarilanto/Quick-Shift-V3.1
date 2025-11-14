@@ -214,47 +214,20 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialView = 'l
 
         setIsProcessing(true);
 
-        if (plan !== 'Gratuit') {
-            const registrationData = {
-                name, email, password, plan, businessType,
-                companyName: finalCompanyName,
-                ...(activitySector && { activitySector }),
-                ...(address && { address }),
-            };
-            try {
-                await apiCreateStripeCheckoutSession(registrationData);
-            } catch (err) {
-                setError('Could not connect to payment service. Please try again.');
-                setIsProcessing(false);
-            }
-            return;
-        }
+        const registrationData = {
+            name, email, password, plan, businessType,
+            companyName: finalCompanyName,
+            ...(activitySector && { activitySector }),
+            ...(address && { address }),
+        };
 
-        // Free plan registration
         try {
-            const result = await register({
-                name,
-                email,
-                plan,
-                businessType,
-                companyName: finalCompanyName,
-                ...(activitySector && { activitySector }),
-                ...(address && { address }),
-            }, password);
-
-            if (!result.success) {
-                if (result.reason === 'email-exists') {
-                    setError(t('auth.emailExists'));
-                } else {
-                    setError(t('auth.registrationFailedUnknown'));
-                }
-                setIsProcessing(false);
-            } else {
-                setRegisteredEmail(email);
-                setAuthView('registerSuccess');
-            }
+            // This now handles all plans, including 'Gratuit'
+            await apiCreateStripeCheckoutSession(registrationData);
+            // Stripe checkout will handle success/cancel redirection.
+            // The webhook will create the user in Firestore/Firebase Auth.
         } catch (err) {
-            setError(t('auth.emailExists'));
+            setError('Could not connect to payment service. Please try again.');
             setIsProcessing(false);
         }
     };
