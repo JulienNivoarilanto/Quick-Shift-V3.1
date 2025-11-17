@@ -13,12 +13,13 @@ import Settings from './components/Settings';
 import CSVImportModal from './components/CSVImportModal';
 import Profile from './components/Profile';
 import { useLanguage } from './contexts/LanguageContext';
-import { Gem } from 'lucide-react';
+import { Gem, MessageSquare } from 'lucide-react';
 import { useData } from './contexts/DataContext';
 import LoadingSpinner from './components/LoadingSpinner';
 import Referencing from './components/Referencing';
 import History from './components/History';
 import TimeClock from './components/TimeClock';
+import Messaging from './components/Messaging';
 
 export default function App() {
   const { user, logout, permissions, isAuthLoading } = useAuth();
@@ -26,6 +27,7 @@ export default function App() {
     employees, shifts, roles, locations, departments, absences, absenceTypes, 
     specialDays, specialDayTypes, inboxMessages, employeeAvailabilities,
     employeeDocuments, documentTypes, meetings, users, teams,
+    messageGroups, chatMessages,
     handleSaveEmployee, handleDeleteEmployee, handleSaveShift, handleDeleteShift, 
     handleDeleteMultipleShifts, handleUpdateShifts, handleAddRole, handleUpdateRole, 
     handleDeleteRole, handleAddLocation, handleUpdateLocation, handleDeleteLocation, 
@@ -42,6 +44,8 @@ export default function App() {
     handleDeleteHistoryItems,
     handleCreateAdditionalUser, handleUpdateUser: handleUpdateOtherUser, handleDeleteUser,
     handleAddTeam, handleUpdateTeam, handleDeleteTeam,
+    handleAddMessageGroup, handleUpdateMessageGroup, handleDeleteMessageGroup,
+    handleSendChatMessage, handleDeleteChatMessage,
     isLoading: isDataLoading
   } = useData();
 
@@ -62,6 +66,9 @@ export default function App() {
             setView('schedule');
         }
         if (view === 'timeclock' && !permissions.canAccessTimeClock) {
+            setView('schedule');
+        }
+        if (view === 'messaging' && !permissions.canAccessMessaging) {
             setView('schedule');
         }
     }
@@ -145,6 +152,31 @@ export default function App() {
                     onBulkDelete={handleBulkDeleteEmployees} onBulkAssignRole={handleBulkAssignRole}
                     onAddTeam={handleAddTeam} onUpdateTeam={handleUpdateTeam} onDeleteTeam={handleDeleteTeam}
                 />;
+      case 'messaging':
+        return permissions.canAccessMessaging
+          ? <Messaging
+              inboxMessages={inboxMessages}
+              messageGroups={messageGroups}
+              chatMessages={chatMessages}
+              employees={employees}
+              teams={teams}
+              users={users}
+              absenceTypes={absenceTypes}
+              onValidateRequest={handleValidateRequest}
+              onRefuseRequest={handleRefuseRequest}
+              onFollowUpComplaint={handleFollowUpComplaint}
+              onAddGroup={handleAddMessageGroup}
+              onUpdateGroup={handleUpdateMessageGroup}
+              onDeleteGroup={handleDeleteMessageGroup}
+              onSendMessage={handleSendChatMessage}
+              onDeleteMessage={handleDeleteChatMessage}
+            />
+          : <div className="text-center p-8 bg-white dark:bg-blue-night-900 rounded-lg shadow-md max-w-lg mx-auto">
+                <MessageSquare size={48} className="mx-auto text-blue-500 dark:text-blue-night-400 mb-4" />
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t('upgrade.messagingTitle')}</h2>
+                <p className="mt-2 text-gray-600 dark:text-gray-400">{t('upgrade.messagingDesc')}</p>
+                <button className="mt-6 bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-night-200 dark:text-blue-night-900 dark:hover:bg-blue-night-300 font-semibold py-2 px-4 rounded-lg transition-colors duration-300">{t('upgrade.upgradeButton')}</button>
+            </div>;
       case 'referencing':
         return <Referencing 
                     employees={employees}

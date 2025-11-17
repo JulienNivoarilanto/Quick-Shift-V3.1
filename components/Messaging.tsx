@@ -1,0 +1,222 @@
+import React, { useState, useMemo, FC, useRef, useEffect } from 'react';
+import { InboxMessage, MessageGroup, ChatMessage, Employee, Team, User, AbsenceType } from '../types';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
+import { Inbox, Users, MessageSquare as DirectMessageIcon, PlusCircle, Search, Edit, Trash2, Send, Paperclip, Smile, MoreVertical, X } from 'lucide-react';
+import MessageItem from './MessageItem';
+import Modal from './Modal';
+import Avatar from './Avatar';
+import MultiSelectDropdown from './MultiSelectDropdown';
+
+// #region PROPS
+interface MessagingProps {
+    inboxMessages: InboxMessage[];
+    messageGroups: MessageGroup[];
+    chatMessages: ChatMessage[];
+    employees: Employee[];
+    teams: Team[];
+    users: User[];
+    absenceTypes: AbsenceType[];
+    onValidateRequest: (messageId: string) => void;
+    onRefuseRequest: (messageId: string, reason: string) => void;
+    onFollowUpComplaint: (messageId: string) => void;
+    onAddGroup: (groupData: Omit<MessageGroup, 'id' | 'companyId' | 'createdAt' | 'createdBy'>) => void;
+    onUpdateGroup: (group: MessageGroup) => void;
+    onDeleteGroup: (groupId: string) => void;
+    onSendMessage: (messageData: Omit<ChatMessage, 'id' | 'companyId' | 'timestamp' | 'readBy' | 'senderName' | 'senderAvatarUrl'>) => void;
+    onDeleteMessage: (messageId: string) => void;
+}
+// #endregion
+
+// #region SHARED COMPONENTS
+const ChatWindow: FC<{
+    conversationId: string;
+    chatMessages: ChatMessage[];
+    allUsers: (User | Employee)[];
+    currentUser: User;
+    onSendMessage: (conversationId: string, content: string) => void;
+}> = ({ conversationId, chatMessages, allUsers, currentUser, onSendMessage }) => {
+    const { t } = useLanguage();
+    const [newMessage, setNewMessage] = useState('');
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const conversationMessages = useMemo(() => 
+        chatMessages
+            .filter(msg => msg.conversationId === conversationId)
+            .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()),
+        [chatMessages, conversationId]
+    );
+
+    const userMap = useMemo(() => new Map(allUsers.map(u => [u.id, u])), [allUsers]);
+
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [conversationMessages]);
+
+    const handleSend = () => {
+        if (newMessage.trim()) {
+            onSendMessage(conversationId, newMessage.trim());
+            setNewMessage('');
+        }
+    };
+
+    return (
+        <div className="flex flex-col h-full">
+            <div className="flex-grow overflow-y-auto p-4 space-y-4">
+                {conversationMessages.length === 0 ? (
+                    <div className="text-center text-slate-500 py-10">{t('messaging.noConversation')}</div>
+                ) : (
+                    conversationMessages.map(msg => {
+                        const isSentByMe = msg.senderId === currentUser.id;
+                        const sender = userMap.get(msg.senderId);
+                        return (
+                            <div key={msg.id} className={`flex items-end gap-2 ${isSentByMe ? 'justify-end' : ''}`}>
+                                {!isSentByMe && <Avatar name={sender?.name || '?'} src={sender?.avatarUrl || null} className="w-8 h-8 rounded-full"/>}
+                                <div className={`max-w-xs md:max-w-md p-3 rounded-2xl ${isSentByMe ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-200 dark:bg-slate-700 rounded-bl-none'}`}>
+                                    <p className="text-sm">{msg.content}</p>
+                                    <p className={`text-xs mt-1 ${isSentByMe ? 'text-blue-200' : 'text-slate-500 dark:text-slate-400'}`}>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
+                 <div ref={messagesEndRef} />
+            </div>
+            <div className="p-4 border-t dark:border-slate-700">
+                <div className="relative">
+                    <input
+                        type="text"
+                        value={newMessage}
+                        onChange={e => setNewMessage(e.target.value)}
+                        onKeyPress={e => e.key === 'Enter' && handleSend()}
+                        placeholder={t('messaging.typeMessage')}
+                        className="w-full pl-4 pr-24 py-3 rounded-full bg-slate-100 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
+                        <button className="p-2 text-slate-500 hover:text-blue-600"><Smile size={20}/></button>
+                        <button className="p-2 text-slate-500 hover:text-blue-600"><Paperclip size={20}/></button>
+                        <button onClick={handleSend} className="p-2.5 bg-blue-600 text-white rounded-full ml-1 hover:bg-blue-700 transition-colors"><Send size={20}/></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+// #endregion
+
+const Messaging: FC<MessagingProps> = (props) => {
+    const { t } = useLanguage();
+    const { user } = useAuth();
+    const { inboxMessages, messageGroups, chatMessages, employees, teams, absenceTypes, onValidateRequest, onRefuseRequest, onFollowUpComplaint, onAddGroup, onUpdateGroup, onDeleteGroup, onSendMessage } = props;
+
+    const [activeTab, setActiveTab] = useState<'inbox' | 'group' | 'direct'>('inbox');
+    const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+    
+    const allUsersForChat = useMemo(() => [...employees, ...props.users], [employees, props.users]);
+
+    const createDirectConversationId = (employeeId: string) => {
+        if (!user) return '';
+        // Create a consistent ID for 1-on-1 chats
+        return [user.id, employeeId].sort().join('--');
+    };
+
+    const handleSendMessage = (conversationId: string, content: string) => {
+        if(!user) return;
+        onSendMessage({
+            conversationId,
+            content,
+            senderId: user.id
+        });
+    }
+
+    const handleSelectConversation = (id: string | null) => {
+        setSelectedConversationId(id);
+    };
+
+    return (
+        <div className="animate-slide-in-up">
+            <h2 className="text-3xl font-bold text-gray-800 dark:text-white">{t('messaging.title')}</h2>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">{t('messaging.description')}</p>
+
+            <div className="mt-6 border-b border-gray-200 dark:border-gray-700">
+                <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+                    <button onClick={() => { setActiveTab('inbox'); handleSelectConversation(null); }} className={`flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'inbox' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}><Inbox size={16}/> {t('messaging.inbox')}</button>
+                    <button onClick={() => { setActiveTab('group'); handleSelectConversation(null); }} className={`flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'group' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}><Users size={16}/> {t('messaging.groupChat')}</button>
+                    <button onClick={() => { setActiveTab('direct'); handleSelectConversation(null); }} className={`flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'direct' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}><DirectMessageIcon size={16}/> {t('messaging.directMessages')}</button>
+                </nav>
+            </div>
+
+            <div className="mt-4">
+                {/* Inbox View */}
+                {activeTab === 'inbox' && (
+                    <div className="bg-white dark:bg-slate-900 rounded-lg shadow-md p-4">
+                        <div className="max-h-[70vh] overflow-y-auto">
+                           {inboxMessages.length > 0 ? (
+                                inboxMessages.sort((a,b) => b.date.getTime() - a.date.getTime()).map(message => {
+                                    const employee = employees.find(e => e.id === message.employeeId);
+                                    if(!employee) return null;
+                                    return (
+                                        <MessageItem
+                                            key={message.id}
+                                            message={message}
+                                            employee={employee}
+                                            absenceType={absenceTypes.find(at => at.id === message.absenceTypeId)}
+                                            onValidate={onValidateRequest}
+                                            onRefuse={onRefuseRequest}
+                                            onFollowUp={onFollowUpComplaint}
+                                        />
+                                    );
+                                })
+                           ) : (
+                                <p className="text-center py-10 text-slate-500">{t('messaging.noMessages')}</p>
+                           )}
+                        </div>
+                    </div>
+                )}
+                
+                {/* Group and Direct Chat Views */}
+                {(activeTab === 'group' || activeTab === 'direct') && (
+                    <div className="grid grid-cols-12 gap-4 h-[75vh]">
+                        <div className="col-span-4 bg-white dark:bg-slate-900 rounded-lg shadow-md p-4 flex flex-col">
+                           {activeTab === 'group' && <p>Group List</p> /* TODO */}
+                           {activeTab === 'direct' && (
+                                <>
+                                    <h3 className="font-bold text-lg mb-2">{t('messaging.searchContacts')}</h3>
+                                    <div className="relative mb-2">
+                                        <input type="text" placeholder={t('employees.searchPlaceholder')} className="input-style w-full pl-8"/>
+                                        <Search size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"/>
+                                    </div>
+                                    <div className="flex-grow overflow-y-auto -mx-4">
+                                        {employees.map(emp => (
+                                            <div key={emp.id} onClick={() => handleSelectConversation(createDirectConversationId(emp.id))} className={`flex items-center gap-3 p-3 mx-2 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 ${selectedConversationId === createDirectConversationId(emp.id) ? 'bg-slate-100 dark:bg-slate-800' : ''}`}>
+                                                <Avatar name={emp.name} src={emp.avatarUrl} className="w-10 h-10 rounded-full"/>
+                                                <p className="font-semibold">{emp.name}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                           )}
+                        </div>
+                        <div className="col-span-8 bg-white dark:bg-slate-900 rounded-lg shadow-md flex flex-col">
+                            {selectedConversationId ? (
+                                <ChatWindow 
+                                    conversationId={selectedConversationId}
+                                    chatMessages={chatMessages}
+                                    allUsers={allUsersForChat}
+                                    currentUser={user!}
+                                    onSendMessage={handleSendMessage}
+                                />
+                            ) : (
+                                <div className="flex items-center justify-center h-full text-slate-500">{t('messaging.noSelection')}</div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+            </div>
+            <style>{`.input-style { display: block; width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; background-color: #f8fafc; } .dark .input-style { border-color: #475569; background-color: #1e293b; color: #f8fafc; }`}</style>
+        </div>
+    );
+};
+
+export default Messaging;

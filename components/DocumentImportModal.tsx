@@ -114,7 +114,6 @@ const DocumentImportModal: React.FC<DocumentImportModalProps> = ({ onClose, onIm
 
     const handleConfirmImport = () => {
         onImport(parsedData);
-        // FIX: Close the modal after a successful import.
         onClose();
     };
 

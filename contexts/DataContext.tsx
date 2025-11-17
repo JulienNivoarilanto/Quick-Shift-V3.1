@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect, useCallback } from 'react';
-import { User, Employee, Shift, Role, Location, Department, Absence, AbsenceType, SpecialDay, SpecialDayType, InboxMessage, EmployeeAvailability, WeeklyAvailability, ContractType, EmployeeDocument, DocumentType, Meeting, Team } from '../types';
+import { User, Employee, Shift, Role, Location, Department, Absence, AbsenceType, SpecialDay, SpecialDayType, InboxMessage, EmployeeAvailability, WeeklyAvailability, ContractType, EmployeeDocument, DocumentType, Meeting, Team, MessageGroup, ChatMessage } from '../types';
 import * as api from '../services/api';
 import { useAuth } from './AuthContext';
 
@@ -21,6 +21,9 @@ interface CompanyDataContextType {
     documentTypes: DocumentType[];
     meetings: Meeting[];
     users: User[];
+    // FIX: Add properties for messaging features
+    messageGroups: MessageGroup[];
+    chatMessages: ChatMessage[];
 }
 
 interface DataState extends CompanyDataContextType {
@@ -79,6 +82,12 @@ interface DataHandlerContextType {
     handleAddTeam: (teamData: Omit<Team, 'id' | 'companyId'>) => Promise<void>;
     handleUpdateTeam: (team: Team) => Promise<void>;
     handleDeleteTeam: (teamId: string) => Promise<void>;
+    // FIX: Add handlers for messaging features
+    handleAddMessageGroup: (groupData: Omit<MessageGroup, 'id' | 'companyId' | 'createdAt' | 'createdBy'>) => Promise<void>;
+    handleUpdateMessageGroup: (group: MessageGroup) => Promise<void>;
+    handleDeleteMessageGroup: (groupId: string) => Promise<void>;
+    handleSendChatMessage: (messageData: Omit<ChatMessage, 'id' | 'companyId' | 'timestamp' | 'readBy' | 'senderName' | 'senderAvatarUrl'>) => Promise<void>;
+    handleDeleteChatMessage: (messageId: string) => Promise<void>;
 }
 
 interface DataContextType extends DataState, DataHandlerContextType {}
@@ -96,6 +105,8 @@ const initialState: DataState = {
     employees: [], shifts: [], roles: [], locations: [], departments: [], teams: [], absences: [],
     absenceTypes: [], specialDays: [], specialDayTypes: [], inboxMessages: [], employeeAvailabilities: [],
     employeeDocuments: [], documentTypes: [], meetings: [], users: [],
+    // FIX: Add messageGroups and chatMessages to the initial state
+    messageGroups: [], chatMessages: [],
     isLoading: true, // Start in loading state
     error: null,
 };
@@ -139,7 +150,9 @@ export const DataProvider: React.FC<{children: ReactNode}> = ({ children }) => {
                     'employees', 'roles', 'locations', 'departments',
                     'absenceTypes', 'specialDayTypes', 'employeeAvailabilities',
                     'documentTypes', 'users', 'shifts', 'absences', 'specialDays', 
-                    'inboxMessages', 'employeeDocuments', 'meetings', 'teams'
+                    'inboxMessages', 'employeeDocuments', 'meetings', 'teams',
+                    // FIX: Add messageGroups and chatMessages to the collections array to fetch
+                    'messageGroups', 'chatMessages'
                 ];
                 
                 unsubscribeListeners = collections.map(collName => 
@@ -405,7 +418,32 @@ export const DataProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     };
     const handleUpdateUser = (userToUpdate: User) => handleSaveItem('users', userToUpdate, false);
     const handleDeleteUser = (userId: string) => handleDeleteItem('users', userId);
-
+    
+    // FIX: Implement messaging handlers
+    const handleAddMessageGroup = async (groupData: Omit<MessageGroup, 'id' | 'companyId' | 'createdAt' | 'createdBy'>) => {
+        if (!user) return;
+        await api.apiCreateItem('messageGroups', {
+            ...groupData,
+            companyId: user.companyId,
+            createdAt: new Date(),
+            createdBy: user.id
+        });
+    };
+    const handleUpdateMessageGroup = (group: MessageGroup) => handleSaveItem('messageGroups', group, false);
+    const handleDeleteMessageGroup = (groupId: string) => handleDeleteItem('messageGroups', groupId);
+    const handleSendChatMessage = async (messageData: Omit<ChatMessage, 'id' | 'companyId' | 'timestamp' | 'readBy' | 'senderName' | 'senderAvatarUrl'>) => {
+        if (!user) return;
+        const fullMessageData = {
+            ...messageData,
+            companyId: user.companyId,
+            senderName: user.name,
+            senderAvatarUrl: user.avatarUrl,
+            timestamp: new Date(),
+            readBy: [user.id],
+        };
+        await api.apiCreateItem('chatMessages', fullMessageData);
+    };
+    const handleDeleteChatMessage = (messageId: string) => handleDeleteItem('chatMessages', messageId);
 
 
     const value: DataContextType = { 
@@ -424,6 +462,9 @@ export const DataProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         handleDeleteHistoryItems,
         handleCreateAdditionalUser, handleUpdateUser, handleDeleteUser,
         handleAddTeam, handleUpdateTeam, handleDeleteTeam,
+        // FIX: Add messaging handlers to context value
+        handleAddMessageGroup, handleUpdateMessageGroup, handleDeleteMessageGroup,
+        handleSendChatMessage, handleDeleteChatMessage,
     };
     
     return (

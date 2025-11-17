@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, FC } from 'react';
 import { useMobileData } from '../../contexts/MobileDataContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2, Send, Users, User, MessageSquare as MessageIcon, FileText } from 'lucide-react';
 import Modal from '../Modal';
-import { AbsenceType, InboxMessage } from '../../types';
+import { AbsenceType, InboxMessage, MessageGroup, ChatMessage, Employee } from '../../types';
 import LoadingSpinner from '../LoadingSpinner';
 import { useMobileAuth } from '../../contexts/MobileAuthContext';
 import Avatar from '../Avatar';
@@ -30,62 +30,33 @@ const timeAgo = (date: Date): string => {
     return Math.floor(seconds) + "s ago";
 };
 
-const getStatusStyles = (status: InboxMessage['status']) => {
-    switch (status) {
-        case 'validated': return { borderColor: 'border-green-500', bgColor: 'bg-green-100 dark:bg-green-900/30', textColor: 'text-green-800 dark:text-green-300' };
-        case 'refused': return { borderColor: 'border-red-500', bgColor: 'bg-red-100 dark:bg-red-900/30', textColor: 'text-red-800 dark:text-red-300' };
-        case 'followed-up': return { borderColor: 'border-blue-500', bgColor: 'bg-blue-100 dark:bg-blue-900/30', textColor: 'text-blue-800 dark:text-blue-300' };
-        default: return { borderColor: 'border-slate-400', bgColor: 'bg-slate-100 dark:bg-slate-800', textColor: 'text-slate-800 dark:text-slate-300' };
-    }
-};
+const SegmentedControl: FC<{
+    tabs: { id: string; label: string; }[];
+    activeTab: string;
+    onTabChange: (id: string) => void;
+}> = ({ tabs, activeTab, onTabChange }) => (
+    <div className="flex bg-slate-200 dark:bg-slate-800 rounded-lg p-1">
+        {tabs.map(tab => (
+            <button
+                key={tab.id}
+                onClick={() => onTabChange(tab.id)}
+                className={`w-full text-center px-3 py-1.5 text-sm font-semibold rounded-md transition-colors ${
+                    activeTab === tab.id
+                        ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                }`}
+            >
+                {tab.label}
+            </button>
+        ))}
+    </div>
+);
 
-const RequestHistoryItem: React.FC<{ message: InboxMessage; absenceTypes: AbsenceType[], language: 'en' | 'fr' }> = ({ message, absenceTypes, language }) => {
-    const { t } = useLanguage();
-    const styles = getStatusStyles(message.status);
-    const absenceType = message.absenceTypeId ? absenceTypes.find(at => at.id === message.absenceTypeId) : null;
-
-    let statusLabelKey = `inbox.status${message.status.charAt(0).toUpperCase() + message.status.slice(1).replace('-', '')}`;
-    if (message.type === 'complaint' && message.status === 'pending') {
-        statusLabelKey = 'inbox.statusNotYetFollowed';
-    }
-    const statusLabel = t(statusLabelKey);
-
-    return (
-        <div className={`bg-white dark:bg-blue-night-900 p-3 rounded-lg shadow-sm border-l-4 ${styles.borderColor}`}>
-            <div className="flex justify-between items-start text-xs">
-                <p className="font-semibold text-slate-800 dark:text-slate-200">{message.subject}</p>
-                <p className="text-slate-500 dark:text-slate-400">{timeAgo(message.date)}</p>
-            </div>
-
-            {message.type === 'absence-request' && message.startDate && message.endDate && absenceType && (
-                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
-                    {absenceType.name}: {new Date(message.startDate).toLocaleDateString(language)} - {new Date(message.endDate).toLocaleDateString(language)}
-                </p>
-            )}
-
-            {message.type === 'complaint' && (
-                 <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 italic truncate">"{message.body}"</p>
-            )}
-
-            <div className="mt-2 flex flex-col items-start">
-                 <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${styles.bgColor} ${styles.textColor}`}>
-                    {statusLabel}
-                </span>
-                {message.status === 'refused' && message.refusalReason && (
-                    <div className="mt-1.5 p-1.5 bg-red-50 dark:bg-red-900/20 rounded-md text-xs w-full">
-                        <p className="font-semibold text-red-800 dark:text-red-300">{t('inbox.refusalReason')}:</p>
-                        <p className="text-red-700 dark:text-red-400">{message.refusalReason}</p>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
 
 const MobileMessagingScreen: React.FC = () => {
     const { t, language } = useLanguage();
     const { employee } = useMobileAuth();
-    const { absenceTypes, submitRequest, inboxMessages, isLoading: isDataLoading } = useMobileData();
+    const { absenceTypes, submitRequest, inboxMessages, messageGroups, chatMessages, isLoading: isDataLoading, sendChatMessage, allEmployees } = useMobileData();
     const [activeTab, setActiveTab] = useState<'absence' | 'complaint' | 'group' | 'direct'>('absence');
 
     const [absenceData, setAbsenceData] = useState({
@@ -146,28 +117,47 @@ const MobileMessagingScreen: React.FC = () => {
     const labelStyle = "block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1";
     const buttonStyle = "w-full flex justify-center items-center px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-transform transform hover:scale-105";
 
+    const tabs = [
+        { id: 'absence', label: t('mobile.absenceRequest') },
+        { id: 'complaint', label: t('mobile.complaint') },
+        { id: 'group', label: t('mobile.group') },
+        { id: 'direct', label: t('mobile.direct') },
+    ];
+
     return (
         <div className="p-4 md:p-6 animate-slide-in-up">
             <header className="mb-6">
                 <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">{t('mobile.messaging')}</h1>
             </header>
-            
-            {/* Tabs would go here */}
 
-            <div className="mt-8">
-                <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-3">Recent Requests</h2>
-                {isDataLoading && <div className="flex justify-center py-4"><LoadingSpinner /></div>}
-                {!isDataLoading && inboxMessages.length === 0 && (
-                    <p className="text-sm text-center text-slate-500 dark:text-slate-400 py-4">No recent requests found.</p>
+            <SegmentedControl tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+            
+            <div className="mt-6">
+                {activeTab === 'absence' && (
+                     <form onSubmit={handleAbsenceSubmit} className="space-y-4">
+                        <div><label htmlFor="absenceTypeId" className={labelStyle}>{t('modals.absenceTypeLabel')}</label><select id="absenceTypeId" value={absenceData.absenceTypeId} onChange={e => setAbsenceData({...absenceData, absenceTypeId: e.target.value})} required className={inputStyle}>{absenceTypes.map(at => <option key={at.id} value={at.id}>{at.name}</option>)}</select></div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div><label htmlFor="startDate" className={labelStyle}>{t('mobile.startDate')}</label><input id="startDate" type="date" value={absenceData.startDate} onChange={e => setAbsenceData({...absenceData, startDate: e.target.value})} required className={inputStyle} /></div>
+                            <div><label htmlFor="endDate" className={labelStyle}>{t('mobile.endDate')}</label><input id="endDate" type="date" value={absenceData.endDate} min={absenceData.startDate} onChange={e => setAbsenceData({...absenceData, endDate: e.target.value})} required className={inputStyle} /></div>
+                        </div>
+                        <div><label htmlFor="body" className={labelStyle}>{t('mobile.message')}</label><textarea id="body" value={absenceData.body} onChange={e => setAbsenceData({...absenceData, body: e.target.value})} rows={3} placeholder={t('mobile.messagePlaceholder')} className={inputStyle}></textarea></div>
+                        <button type="submit" disabled={isSubmitting} className={buttonStyle}>{isSubmitting ? <Loader2 className="animate-spin" /> : t('mobile.submitRequest')}</button>
+                    </form>
                 )}
-                {!isDataLoading && inboxMessages.length > 0 && (
-                    <div className="space-y-3">
-                        {inboxMessages.map(msg => (
-                            <RequestHistoryItem key={msg.id} message={msg} absenceTypes={absenceTypes} language={language} />
-                        ))}
-                    </div>
-                )}
+                 {activeTab === 'complaint' && (
+                    <form onSubmit={handleComplaintSubmit} className="space-y-4">
+                        <div><label htmlFor="complaint-body" className={labelStyle}>{t('mobile.complaint')}</label><textarea id="complaint-body" value={complaintData.body} onChange={e => setComplaintData({ body: e.target.value })} required rows={5} placeholder={t('mobile.complaintPlaceholder')} className={inputStyle}></textarea></div>
+                        <button type="submit" disabled={isSubmitting} className={buttonStyle}>{isSubmitting ? <Loader2 className="animate-spin" /> : t('mobile.submitComplaint')}</button>
+                    </form>
+                 )}
+                 {activeTab === 'group' && (
+                     <div><p className="text-center py-10 text-slate-500">Group chat coming soon.</p></div>
+                 )}
+                  {activeTab === 'direct' && (
+                     <div><p className="text-center py-10 text-slate-500">Direct messages coming soon.</p></div>
+                 )}
             </div>
+
 
             <Modal
                 isOpen={modalInfo.isOpen}

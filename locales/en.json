@@ -5,6 +5,7 @@
     "dashboard": "Dashboard",
     "schedule": "Schedule",
     "employees": "Staff",
+    "messaging": "Messaging",
     "referencing": "Referencing",
     "timeclock": "Time Clock",
     "history": "History",
@@ -384,7 +385,8 @@
     "referencing": "Referencing",
     "settings": "Settings",
     "timeclock": "Time Clock",
-    "history": "History"
+    "history": "History",
+    "messaging": "Messaging"
   },
   "modals": {
     "cancel": "Cancel",
@@ -733,7 +735,9 @@
     "dashboardDesc": "Upgrade to a Pro plan to access powerful analytics and insights into your team's schedule and performance.",
     "upgradeButton": "Upgrade Plan",
     "timeClockTitle": "Unlock Real-Time Tracking",
-    "timeClockDesc": "Upgrade to the Pro Plus plan to access live tracking of your staff's clock-ins and see who is present, late, or absent in real-time."
+    "timeClockDesc": "Upgrade to the Pro Plus plan to access live tracking of your staff's clock-ins and see who is present, late, or absent in real-time.",
+    "messagingTitle": "Unlock Advanced Messaging",
+    "messagingDesc": "Upgrade to Pro Plus to access group chats, direct messaging, and a centralized inbox for all staff communication."
   },
   "header": {
     "inbox": "Inbox"
@@ -865,6 +869,9 @@
     "today": "Today",
     "schedule": "My Hours",
     "requests": "Requests",
+    "messaging": "Messaging",
+    "group": "Group",
+    "direct": "Direct",
     "email": "Email",
     "phone": "Phone",
     "gender": "Gender",
@@ -953,5 +960,33 @@
     "professionalization": "Professionalization",
     "part-time": "Part-time",
     "seasonal": "Seasonal"
+  },
+  "messaging": {
+    "title": "Messaging",
+    "description": "Centralize all your internal communications, from requests to team discussions.",
+    "inbox": "Inbox",
+    "groupChat": "Group Chat",
+    "directMessages": "Direct Messages",
+    "all": "All",
+    "pending": "Pending",
+    "resolved": "Resolved",
+    "noMessages": "No messages in this category.",
+    "searchGroups": "Search groups...",
+    "createGroup": "Create Group",
+    "noGroups": "No group chats have been created yet.",
+    "selectGroupToStart": "Select a group to start chatting.",
+    "editGroup": "Edit Group",
+    "deleteGroup": "Delete Group",
+    "confirmDeleteGroup": "Are you sure you want to delete the group '{name}'? This action cannot be undone.",
+    "groupName": "Group Name",
+    "addMembers": "Add Members",
+    "addTeams": "Add Teams",
+    "searchEmployees": "Search employees...",
+    "searchTeams": "Search teams...",
+    "typeMessage": "Type a message...",
+    "searchContacts": "Search contacts...",
+    "selectContactToStart": "Select a contact to start a direct message.",
+    "noConversation": "No messages yet. Start the conversation!",
+    "noSelection": "No conversation selected"
   }
 }

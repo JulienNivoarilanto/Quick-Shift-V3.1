@@ -2,7 +2,7 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import 'firebase/compat/functions';
-import { User, Shift, Subscription, Payment, Plan, Employee, AbsenceType, InboxMessage, Location, Department, Role, EmployeeDocument, Meeting, Company, BusinessType, ActivitySector } from '../types';
+import { User, Shift, Subscription, Payment, Plan, Employee, AbsenceType, InboxMessage, Location, Department, Role, EmployeeDocument, Meeting, Company, BusinessType, ActivitySector, MessageGroup, ChatMessage } from '../types';
 
 // --- FIREBASE CONFIGURATION ---
 const firebaseConfig = {
@@ -403,23 +403,28 @@ export const apiLoginEmployee = async (email: string, accessCode: string): Promi
     }
 };
 
-export const apiGetMobileData = async (employeeId: string, companyId: string): Promise<{ shifts: Shift[], absenceTypes: AbsenceType[], locations: Location[], departments: Department[], inboxMessages: InboxMessage[], meetings: Meeting[], allEmployees: Employee[] }> => {
+export const apiGetMobileData = async (employeeId: string, companyId: string): Promise<{ shifts: Shift[], absenceTypes: AbsenceType[], locations: Location[], departments: Department[], inboxMessages: InboxMessage[], meetings: Meeting[], allEmployees: Employee[], messageGroups: MessageGroup[], chatMessages: ChatMessage[] }> => {
     try {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const twoWeeksFromNow = new Date(today);
         twoWeeksFromNow.setDate(today.getDate() + 14);
 
+        // Standard data queries
         const shiftsQuery = db.collection('shifts').where('companyId', '==', companyId).where('employeeId', '==', employeeId).where('startTime', '>=', today).where('startTime', '<=', twoWeeksFromNow);
-        
         const meetingsAsParticipantQuery = db.collection('meetings').where('companyId', '==', companyId).where('participantIds', 'array-contains', employeeId);
         const meetingsAsOrganizerQuery = db.collection('meetings').where('companyId', '==', companyId).where('organizerId', '==', employeeId);
-
         const absenceTypesQuery = db.collection('absenceTypes').where('companyId', '==', companyId);
         const locationsQuery = db.collection('locations').where('companyId', '==', companyId);
         const departmentsQuery = db.collection('departments').where('companyId', '==', companyId);
         const inboxMessagesQuery = db.collection('inboxMessages').where('companyId', '==', companyId).where('employeeId', '==', employeeId);
         const allEmployeesQuery = db.collection('employees').where('companyId', '==', companyId);
+        
+        // New messaging queries
+        const messageGroupsByMemberQuery = db.collection('messageGroups').where('companyId', '==', companyId).where('memberIds', 'array-contains', employeeId);
+        // Note: Firestore does not support multiple 'array-contains' or 'OR' queries on different fields. We'll fetch all company groups and filter client-side for teams.
+        const allMessageGroupsQuery = db.collection('messageGroups').where('companyId', '==', companyId);
+
 
         const [
             shiftsSnapshot, 
@@ -429,27 +434,26 @@ export const apiGetMobileData = async (employeeId: string, companyId: string): P
             inboxMessagesSnapshot, 
             meetingsAsParticipantSnapshot,
             meetingsAsOrganizerSnapshot,
-            allEmployeesSnapshot
+            allEmployeesSnapshot,
+            messageGroupsSnapshot
         ] = await Promise.all([
             shiftsQuery.get(),
             absenceTypesQuery.get(),
             locationsQuery.get(),
             departmentsQuery.get(),
             inboxMessagesQuery.get(),
+            // FIX: The snapshot result variables were used here before they were declared. Replaced with the query variables.
             meetingsAsParticipantQuery.get(),
             meetingsAsOrganizerQuery.get(),
-            // Fix: Use the query variable 'allEmployeesQuery' instead of the undeclared 'allEmployeesSnapshot'.
             allEmployeesQuery.get(),
+            allMessageGroupsQuery.get(),
         ]);
         
         const shifts = shiftsSnapshot.docs.map(docWithId);
         const absenceTypes = absenceTypesSnapshot.docs.map(docWithId);
         const locations = locationsSnapshot.docs.map(docWithId);
         const departments = departmentsSnapshot.docs.map(docWithId);
-        const inboxMessages = inboxMessagesSnapshot.docs
-            .map(docWithId)
-            .sort((a, b) => b.date.getTime() - a.date.getTime())
-            .slice(0, 10);
+        const inboxMessages = inboxMessagesSnapshot.docs.map(docWithId).sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 10);
         
         const meetingsMap = new Map<string, Meeting>();
         meetingsAsParticipantSnapshot.docs.map(docWithId).forEach(m => meetingsMap.set(m.id, m));
@@ -457,11 +461,38 @@ export const apiGetMobileData = async (employeeId: string, companyId: string): P
         const meetings = Array.from(meetingsMap.values());
         
         const allEmployees = allEmployeesSnapshot.docs.map(docWithId);
+        
+        // Filter message groups client-side
+        const employee = allEmployees.find(e => e.id === employeeId);
+        const teams = await db.collection('teams').where('companyId', '==', companyId).get().then(snap => snap.docs.map(docWithId));
+        const employeeTeamIds = teams.filter(t => t.memberIds.includes(employeeId)).map(t => t.id);
 
-        return { shifts, absenceTypes, locations, departments, inboxMessages, meetings, allEmployees };
+        const messageGroups = messageGroupsSnapshot.docs.map(docWithId).filter(group => 
+            group.memberIds.includes(employeeId) || group.teamIds.some((teamId: string) => employeeTeamIds.includes(teamId))
+        );
+
+        let chatMessages: ChatMessage[] = [];
+        const relevantConversationIds = messageGroups.map(g => g.id);
+        // Also add direct message conversations
+        const webUsers = await db.collection('users').where('companyId', '==', companyId).get().then(snap => snap.docs.map(docWithId));
+        webUsers.forEach(user => {
+            const conversationId = [user.id, employeeId].sort().join('--');
+            relevantConversationIds.push(conversationId);
+        });
+
+        if (relevantConversationIds.length > 0) {
+            // Firestore 'in' query is limited to 10 items. For more, multiple queries are needed.
+            // For simplicity, we'll fetch all chat messages for the company and filter.
+            // In a production app, you'd paginate or fetch on-demand.
+            const chatMessagesSnapshot = await db.collection('chatMessages').where('companyId', '==', companyId).get();
+            chatMessages = chatMessagesSnapshot.docs.map(docWithId).filter(msg => relevantConversationIds.includes(msg.conversationId));
+        }
+
+
+        return { shifts, absenceTypes, locations, departments, inboxMessages, meetings, allEmployees, messageGroups, chatMessages };
     } catch (error) {
         console.error("Error fetching mobile data:", error);
-        return { shifts: [], absenceTypes: [], locations: [], departments: [], inboxMessages: [], meetings: [], allEmployees: [] };
+        return { shifts: [], absenceTypes: [], locations: [], departments: [], inboxMessages: [], meetings: [], allEmployees: [], messageGroups: [], chatMessages: [] };
     }
 };
 

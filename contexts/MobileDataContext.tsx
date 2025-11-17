@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { Shift, AbsenceType, Location, Department, InboxMessage, Meeting, Employee } from '../types';
+import { Shift, AbsenceType, Location, Department, InboxMessage, Meeting, Employee, MessageGroup, ChatMessage } from '../types';
 import * as api from '../services/api';
 import { useMobileAuth } from './MobileAuthContext';
 
@@ -11,11 +11,14 @@ interface MobileDataContextType {
     inboxMessages: InboxMessage[];
     meetings: Meeting[];
     allEmployees: Employee[];
+    messageGroups: MessageGroup[];
+    chatMessages: ChatMessage[];
     isLoading: boolean;
     error: string | null;
     refetchData: () => void;
     submitRequest: (data: any) => Promise<boolean>;
     updateShift: (shift: Shift) => Promise<void>;
+    sendChatMessage: (messageData: Omit<ChatMessage, 'id' | 'companyId' | 'timestamp' | 'readBy' | 'senderId' | 'senderName' | 'senderAvatarUrl'>) => Promise<boolean>;
 }
 
 const MobileDataContext = createContext<MobileDataContextType | undefined>(undefined);
@@ -29,6 +32,8 @@ export const MobileDataProvider: React.FC<{ children: ReactNode }> = ({ children
     const [inboxMessages, setInboxMessages] = useState<InboxMessage[]>([]);
     const [meetings, setMeetings] = useState<Meeting[]>([]);
     const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+    const [messageGroups, setMessageGroups] = useState<MessageGroup[]>([]);
+    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -46,6 +51,8 @@ export const MobileDataProvider: React.FC<{ children: ReactNode }> = ({ children
             setInboxMessages(data.inboxMessages);
             setMeetings(data.meetings);
             setAllEmployees(data.allEmployees);
+            setMessageGroups(data.messageGroups);
+            setChatMessages(data.chatMessages);
         } catch (err) {
             console.error(err);
             setError("Failed to load schedule data.");
@@ -72,6 +79,27 @@ export const MobileDataProvider: React.FC<{ children: ReactNode }> = ({ children
             return true;
         } catch (error) {
             console.error("Failed to submit request", error);
+            return false;
+        }
+    };
+
+    const sendChatMessage = async (messageData: Omit<ChatMessage, 'id' | 'companyId' | 'timestamp' | 'readBy' | 'senderId' | 'senderName' | 'senderAvatarUrl'>): Promise<boolean> => {
+        if (!employee) return false;
+        try {
+            const messageToSend = {
+                ...messageData,
+                senderId: employee.id,
+                senderName: employee.name,
+                senderAvatarUrl: employee.avatarUrl,
+                timestamp: new Date(),
+                readBy: [employee.id],
+                companyId: employee.companyId
+            };
+            const newMsg = await api.apiCreateItem('chatMessages', messageToSend);
+            setChatMessages(prev => [...prev, newMsg]);
+            return true;
+        } catch (error) {
+            console.error("Failed to send chat message", error);
             return false;
         }
     };
@@ -103,11 +131,14 @@ export const MobileDataProvider: React.FC<{ children: ReactNode }> = ({ children
         inboxMessages,
         meetings,
         allEmployees,
+        messageGroups,
+        chatMessages,
         isLoading,
         error,
         refetchData: fetchData,
         submitRequest,
-        updateShift
+        updateShift,
+        sendChatMessage
     };
 
     return (

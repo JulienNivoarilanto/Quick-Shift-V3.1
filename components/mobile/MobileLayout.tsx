@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Home, Calendar, Send } from 'lucide-react';
+import { Home, Calendar, MessageSquare } from 'lucide-react';
 import TodayScreen from './TodayScreen';
 import ScheduleScreen from './ScheduleScreen';
 import MobileMessagingScreen from './MobileMessagingScreen';
 import { useLanguage } from '../../contexts/LanguageContext';
 
-type ActiveView = 'today' | 'schedule' | 'requests';
+type ActiveView = 'today' | 'schedule' | 'messaging';
 
 const NavItem: React.FC<{
   icon: React.ReactNode;
@@ -31,7 +31,7 @@ const MobileLayout: React.FC = () => {
         switch (activeView) {
             case 'today': return <TodayScreen />;
             case 'schedule': return <ScheduleScreen />;
-            case 'requests': return <MobileMessagingScreen />;
+            case 'messaging': return <MobileMessagingScreen />;
             default: return <TodayScreen />;
         }
     };
@@ -45,7 +45,7 @@ const MobileLayout: React.FC = () => {
                 <nav className="flex justify-around items-center h-16">
                     <NavItem icon={<Home size={24} />} label={t('mobile.today')} isActive={activeView === 'today'} onClick={() => setActiveView('today')} />
                     <NavItem icon={<Calendar size={24} />} label={t('mobile.schedule')} isActive={activeView === 'schedule'} onClick={() => setActiveView('schedule')} />
-                    <NavItem icon={<Send size={24} />} label={t('mobile.messaging')} isActive={activeView === 'requests'} onClick={() => setActiveView('requests')} />
+                    <NavItem icon={<MessageSquare size={24} />} label={t('mobile.messaging')} isActive={activeView === 'messaging'} onClick={() => setActiveView('messaging')} />
                 </nav>
             </footer>
         </div>
