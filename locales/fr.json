@@ -5,6 +5,7 @@
     "dashboard": "Tableau de bord",
     "schedule": "Planning",
     "employees": "Personnel",
+    "messaging": "Messagerie",
     "referencing": "Référencement",
     "timeclock": "Pointage",
     "history": "Historique",
@@ -384,7 +385,8 @@
     "referencing": "Référencement",
     "settings": "Paramètres",
     "timeclock": "Pointage",
-    "history": "Historique"
+    "history": "Historique",
+    "messaging": "Messagerie"
   },
   "modals": {
     "cancel": "Annuler",
@@ -733,7 +735,9 @@
     "dashboardDesc": "Passez à un plan Pro pour accéder à des analyses puissantes et des informations sur le planning et les performances de votre équipe.",
     "upgradeButton": "Mettre à niveau",
     "timeClockTitle": "Débloquez le suivi en temps réel",
-    "timeClockDesc": "Passez au plan Pro Plus pour accéder au suivi en direct des pointages de votre personnel et voir qui est présent, en retard ou absent en temps réel."
+    "timeClockDesc": "Passez au plan Pro Plus pour accéder au suivi en direct des pointages de votre personnel et voir qui est présent, en retard ou absent en temps réel.",
+    "messagingTitle": "Débloquez la Messagerie Avancée",
+    "messagingDesc": "Passez à Pro Plus pour accéder aux discussions de groupe, à la messagerie directe et à une boîte de réception centralisée pour toutes les communications du personnel."
   },
   "header": {
     "inbox": "Boîte de réception"
@@ -865,6 +869,9 @@
     "today": "Aujourd'hui",
     "schedule": "Mes Heures",
     "requests": "Demandes",
+    "messaging": "Messagerie",
+    "group": "Groupe",
+    "direct": "Individuel",
     "email": "E-mail",
     "phone": "Téléphone",
     "gender": "Genre",
@@ -953,5 +960,33 @@
     "professionalization": "Professionnalisation",
     "part-time": "Temps partiel",
     "seasonal": "Saisonnier"
+  },
+  "messaging": {
+    "title": "Messagerie",
+    "description": "Centralisez toutes vos communications internes, des demandes aux discussions d'équipe.",
+    "inbox": "Boîte de réception",
+    "groupChat": "Groupes",
+    "directMessages": "Messages directs",
+    "all": "Tout",
+    "pending": "En attente",
+    "resolved": "Résolu",
+    "noMessages": "Aucun message dans cette catégorie.",
+    "searchGroups": "Rechercher des groupes...",
+    "createGroup": "Créer un groupe",
+    "noGroups": "Aucun groupe de discussion n'a encore été créé.",
+    "selectGroupToStart": "Sélectionnez un groupe pour commencer à discuter.",
+    "editGroup": "Modifier le groupe",
+    "deleteGroup": "Supprimer le groupe",
+    "confirmDeleteGroup": "Êtes-vous sûr de vouloir supprimer le groupe '{name}' ? Cette action est irréversible.",
+    "groupName": "Nom du groupe",
+    "addMembers": "Ajouter des membres",
+    "addTeams": "Ajouter des équipes",
+    "searchEmployees": "Rechercher des employés...",
+    "searchTeams": "Rechercher des équipes...",
+    "typeMessage": "Écrire un message...",
+    "searchContacts": "Rechercher des contacts...",
+    "selectContactToStart": "Sélectionnez un contact pour démarrer une conversation.",
+    "noConversation": "Pas encore de messages. Commencez la conversation !",
+    "noSelection": "Aucune conversation sélectionnée"
   }
 }

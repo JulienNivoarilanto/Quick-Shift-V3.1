@@ -116,6 +116,11 @@ const ChatWindow: FC<{
     const { t } = useLanguage();
     const [newMessage, setNewMessage] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const emojiPickerRef = useRef<HTMLDivElement>(null);
+    const emojiButtonRef = useRef<HTMLButtonElement>(null);
+
+    const EMOJIS = ['😊', '😂', '❤️', '👍', '🙏', '🎉', '🤔', '😢'];
 
     const conversationMessages = useMemo(() => 
         chatMessages
@@ -130,11 +135,33 @@ const ChatWindow: FC<{
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [conversationMessages]);
 
+     useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                emojiPickerRef.current &&
+                !emojiPickerRef.current.contains(event.target as Node) &&
+                emojiButtonRef.current &&
+                !emojiButtonRef.current.contains(event.target as Node)
+            ) {
+                setShowEmojiPicker(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
     const handleSend = () => {
         if (newMessage.trim()) {
             onSendMessage(conversationId, newMessage.trim());
             setNewMessage('');
         }
+    };
+
+    const handleEmojiSelect = (emoji: string) => {
+        setNewMessage(prev => prev + emoji);
+        setShowEmojiPicker(false);
     };
 
     return (
@@ -161,17 +188,25 @@ const ChatWindow: FC<{
             </div>
             <div className="p-4 border-t dark:border-slate-700">
                 <div className="relative">
+                    {showEmojiPicker && (
+                        <div ref={emojiPickerRef} className="absolute bottom-full right-0 mb-2 bg-white dark:bg-slate-800 shadow-lg rounded-lg p-2 grid grid-cols-4 gap-2 w-40">
+                            {EMOJIS.map(emoji => (
+                                <button key={emoji} onClick={() => handleEmojiSelect(emoji)} className="text-xl p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700">
+                                    {emoji}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                     <input
                         type="text"
                         value={newMessage}
                         onChange={e => setNewMessage(e.target.value)}
                         onKeyPress={e => e.key === 'Enter' && handleSend()}
                         placeholder={t('messaging.typeMessage')}
-                        className="w-full pl-4 pr-24 py-3 rounded-full bg-slate-100 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full pl-4 pr-20 py-3 rounded-full bg-slate-100 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
-                        <button className="p-2 text-slate-500 hover:text-blue-600"><Smile size={20}/></button>
-                        <button className="p-2 text-slate-500 hover:text-blue-600"><Paperclip size={20}/></button>
+                        <button ref={emojiButtonRef} onClick={() => setShowEmojiPicker(prev => !prev)} className="p-2 text-slate-500 hover:text-blue-600"><Smile size={20}/></button>
                         <button onClick={handleSend} className="p-2.5 bg-blue-600 text-white rounded-full ml-1 hover:bg-blue-700 transition-colors"><Send size={20}/></button>
                     </div>
                 </div>
@@ -291,8 +326,7 @@ const Messaging: FC<MessagingProps> = (props) => {
                                         <button onClick={() => setGroupEditorModal({ isOpen: true, group: null })} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"><PlusCircle size={20}/></button>
                                     </div>
                                     <div className="relative mb-2">
-                                        <input type="text" placeholder={t('messaging.searchGroups')} value={groupSearchTerm} onChange={e => setGroupSearchTerm(e.target.value)} className="input-style w-full pl-8"/>
-                                        <Search size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"/>
+                                        <input type="text" placeholder={t('messaging.searchGroups')} value={groupSearchTerm} onChange={e => setGroupSearchTerm(e.target.value)} className="input-style w-full"/>
                                     </div>
                                     <div className="flex-grow overflow-y-auto -mx-4">
                                         {filteredGroups.length > 0 ? filteredGroups.map(group => {
@@ -320,8 +354,7 @@ const Messaging: FC<MessagingProps> = (props) => {
                                 <>
                                     <h3 className="font-bold text-lg mb-2">{t('messaging.directMessages')}</h3>
                                     <div className="relative mb-2">
-                                        <input type="text" placeholder={t('employees.searchPlaceholder')} value={directSearchTerm} onChange={e => setDirectSearchTerm(e.target.value)} className="input-style w-full pl-8"/>
-                                        <Search size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"/>
+                                        <input type="text" placeholder={t('messaging.searchContacts')} value={directSearchTerm} onChange={e => setDirectSearchTerm(e.target.value)} className="input-style w-full"/>
                                     </div>
                                     <div className="flex-grow overflow-y-auto -mx-4">
                                         {filteredDirectContacts.map(emp => (
