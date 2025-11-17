@@ -105,7 +105,7 @@ const UserEditorModal: React.FC<UserEditorModalProps> = ({ userToEdit, onClose, 
 
     const initialPermissions: UserPermissions = {
         canAccessDashboard: true, canAccessSchedule: true, canAccessSettings: true,
-        canAccessEmployees: true, canAccessReferencing: true, canAccessHistory: true, canAccessTimeClock: true
+        canAccessEmployees: true, canAccessReferencing: true, canAccessHistory: true, canAccessTimeClock: true, canAccessMessaging: true
     };
 
     const [formData, setFormData] = useState({
@@ -210,7 +210,7 @@ const UserEditorModal: React.FC<UserEditorModalProps> = ({ userToEdit, onClose, 
     };
 
     const footer = <><button onClick={onClose} className="btn-secondary">{t('modals.cancel')}</button><button onClick={handleSave} disabled={isProcessing} className="btn-primary w-24 flex justify-center">{isProcessing ? <Loader2 className="animate-spin" /> : t('modals.save')}</button></>;
-    const permissionKeys: Array<keyof UserPermissions> = ['canAccessDashboard', 'canAccessSchedule', 'canAccessEmployees', 'canAccessReferencing', 'canAccessSettings', 'canAccessTimeClock', 'canAccessHistory'];
+    const permissionKeys: Array<keyof UserPermissions> = ['canAccessDashboard', 'canAccessSchedule', 'canAccessEmployees', 'canAccessReferencing', 'canAccessSettings', 'canAccessTimeClock', 'canAccessHistory', 'canAccessMessaging'];
     const title = isNew ? t('profile.userManagement.addUserTitle') : t('profile.userManagement.editUserTitle');
 
     return (
@@ -266,7 +266,7 @@ const UserEditorModal: React.FC<UserEditorModalProps> = ({ userToEdit, onClose, 
                         <label className="label-style">{t('profile.userManagement.permissions')}</label>
                         <div className="grid grid-cols-2 gap-2 p-3 border rounded-lg bg-slate-50 dark:bg-slate-800/50 dark:border-slate-700">
                            {permissionKeys.map(perm => {
-                                const isDisabledByPlan = (perm === 'canAccessDashboard' && !permissions.canAccessDashboard) || (perm === 'canAccessTimeClock' && !permissions.canAccessTimeClock);
+                                const isDisabledByPlan = (perm === 'canAccessDashboard' && !permissions.canAccessDashboard) || (perm === 'canAccessTimeClock' && !permissions.canAccessTimeClock) || (perm === 'canAccessMessaging' && !permissions.canAccessMessaging);
                                 const labelText = t(`permissions.${perm.replace('canAccess', '').toLowerCase()}`);
                                 return (
                                     <label key={perm} className={`flex items-center space-x-2 p-1 ${isDisabledByPlan ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>

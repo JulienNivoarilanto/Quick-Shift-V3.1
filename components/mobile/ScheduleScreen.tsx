@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useMobileData } from '../../contexts/MobileDataContext';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -166,7 +165,6 @@ const ScheduleScreen: React.FC = () => {
                         {daysToRender.slice(0, 7).map(date => {
                             const dateString = date.toISOString().split('T')[0];
                             return (
-                                // FIX: Wrapped ref callback in a block to ensure it returns void, as `Map.prototype.set` returns the map instance, which is not a valid ref callback return type.
                                 <div key={dateString} ref={el => { dayRefs.current.set(dateString, el); }}>
                                     <DayCard date={date} shifts={shifts} t={t} locations={locations} departments={departments} language={language} />
                                 </div>
@@ -180,7 +178,6 @@ const ScheduleScreen: React.FC = () => {
                          {daysToRender.slice(7, 14).map(date => {
                             const dateString = date.toISOString().split('T')[0];
                             return (
-                                // FIX: Wrapped ref callback in a block to ensure it returns void, as `Map.prototype.set` returns the map instance, which is not a valid ref callback return type.
                                 <div key={dateString} ref={el => { dayRefs.current.set(dateString, el); }}>
                                     <DayCard date={date} shifts={shifts} t={t} locations={locations} departments={departments} language={language} />
                                 </div>

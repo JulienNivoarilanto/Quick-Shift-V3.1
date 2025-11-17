@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 // FIX: Import 'EmployeeDocument' and 'DocumentType' types to resolve 'Cannot find name' error. Removed unused 'ContractType' import.
 import { Employee, EmployeeDocument, DocumentType } from '../types';
@@ -98,8 +97,8 @@ const DocumentImportModal: React.FC<DocumentImportModalProps> = ({ onClose, onIm
                 if (err instanceof Error) {
                     setError(err.message);
                 } else {
-                    // FIX: Use a template literal for safer string conversion of the unknown error type.
-                    setError(`${err}`);
+                    // FIX: Explicitly convert the unknown error type to a string before setting the state.
+                    setError(String(err));
                 }
                 setStep('upload');
                 setFileName('');

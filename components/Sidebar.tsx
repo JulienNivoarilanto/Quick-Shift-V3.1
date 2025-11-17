@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from '../types';
-import { LayoutDashboard, Calendar, Users, LogOut, Gem, Settings, ChevronLeft, ChevronRight, FileText, History, Gauge } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, LogOut, Gem, Settings, ChevronLeft, ChevronRight, FileText, History, Gauge, MessageSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import Avatar from './Avatar';
@@ -68,6 +68,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, onLogout, isCol
             />
             <NavItem icon={<Calendar size={20} />} label={t('sidebar.schedule')} isActive={currentView === 'schedule'} onClick={() => setView('schedule')} isCollapsed={isCollapsed} isDisabled={!permissions.canAccessSchedule} />
             <NavItem icon={<Users size={20} />} label={t('sidebar.employees')} isActive={currentView === 'employees'} onClick={() => setView('employees')} isCollapsed={isCollapsed} isDisabled={!permissions.canAccessEmployees} />
+            <NavItem icon={<MessageSquare size={20} />} label={t('sidebar.messaging')} isActive={currentView === 'messaging'} onClick={() => setView('messaging')} isCollapsed={isCollapsed} isDisabled={!permissions.canAccessMessaging} />
             <NavItem icon={<FileText size={20} />} label={t('sidebar.referencing')} isActive={currentView === 'referencing'} onClick={() => setView('referencing')} isCollapsed={isCollapsed} isDisabled={!permissions.canAccessReferencing} />
             <NavItem icon={<Settings size={20} />} label={t('sidebar.settings')} isActive={currentView === 'settings'} onClick={() => setView('settings')} isCollapsed={isCollapsed} isDisabled={!permissions.canAccessSettings} />
             <NavItem icon={<Gauge size={20} />} label={t('sidebar.timeclock')} isActive={currentView === 'timeclock'} onClick={() => setView('timeclock')} isCollapsed={isCollapsed} isDisabled={!permissions.canAccessTimeClock} />

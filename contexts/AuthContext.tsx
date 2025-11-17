@@ -15,6 +15,7 @@ export interface Permissions {
   canAccessReferencing: boolean;
   canAccessHistory: boolean;
   canAccessTimeClock: boolean;
+  canAccessMessaging: boolean;
   canManageSubscription: boolean;
   canManageUsers: boolean;
 
@@ -105,9 +106,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const customPermissions = user?.customPermissions;
 
     const planLimits = {
-      'Gratuit': { employeeLimit: 10, userLimit: 1, allowsDashboard: false, allowsTimeClock: false, allowsMultiUser: false },
-      'Pro': { employeeLimit: 100, userLimit: 10, allowsDashboard: true, allowsTimeClock: false, allowsMultiUser: true },
-      'Pro Plus': { employeeLimit: 300, userLimit: 30, allowsDashboard: true, allowsTimeClock: true, allowsMultiUser: true },
+      'Gratuit': { employeeLimit: 10, userLimit: 1, allowsDashboard: false, allowsTimeClock: false, allowsMultiUser: false, canAccessMessaging: false },
+      'Pro': { employeeLimit: 100, userLimit: 10, allowsDashboard: true, allowsTimeClock: false, allowsMultiUser: true, canAccessMessaging: false },
+      'Pro Plus': { employeeLimit: 300, userLimit: 30, allowsDashboard: true, allowsTimeClock: true, allowsMultiUser: true, canAccessMessaging: true },
     }[plan];
 
     const basePermissions = {
@@ -128,6 +129,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             canAccessReferencing: true,
             canAccessHistory: true,
             canAccessTimeClock: planLimits.allowsTimeClock,
+            canAccessMessaging: planLimits.canAccessMessaging,
             canManageSubscription: planLimits.allowsMultiUser,
             canManageUsers: planLimits.allowsMultiUser,
         };
@@ -143,6 +145,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             canAccessReferencing: customPermissions.canAccessReferencing,
             canAccessHistory: customPermissions.canAccessHistory,
             canAccessTimeClock: planLimits.allowsTimeClock && customPermissions.canAccessTimeClock,
+            canAccessMessaging: planLimits.canAccessMessaging && customPermissions.canAccessMessaging,
             canManageSubscription: false,
             canManageUsers: false,
         };
@@ -158,6 +161,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         canAccessReferencing: true,
         canAccessHistory: true,
         canAccessTimeClock: planLimits.allowsTimeClock,
+        canAccessMessaging: planLimits.canAccessMessaging,
         canManageSubscription: false,
         canManageUsers: false,
     };

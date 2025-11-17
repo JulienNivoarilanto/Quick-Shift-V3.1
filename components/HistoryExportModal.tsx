@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Modal from './Modal';
 import { Employee, Shift, Absence, Meeting } from '../types';
@@ -7,7 +6,6 @@ import { useLanguage } from '../contexts/LanguageContext';
 
 type ExportFormat = 'csv' | 'xlsx' | 'pdf';
 
-// FIX: Updated UnifiedHistoryItem to include Meeting type to match the definition in History.tsx
 interface UnifiedHistoryItem {
     id: string;
     type: 'Presence' | 'Lateness' | 'Absence' | 'Meeting';

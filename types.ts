@@ -146,8 +146,30 @@ export interface Meeting {
   companyId: string;
 }
 
+export interface MessageGroup {
+  id: string;
+  name: string;
+  companyId: string;
+  memberIds: string[]; // employee IDs
+  teamIds: string[]; // team IDs
+  createdAt: Date;
+  createdBy: string; // user ID
+}
 
-export type View = 'dashboard' | 'schedule' | 'employees' | 'settings' | 'profile' | 'referencing' | 'history' | 'timeclock';
+export interface ChatMessage {
+  id: string;
+  companyId: string;
+  conversationId: string; // MessageGroup ID or direct message channel ID
+  senderId: string; // User ID or Employee ID
+  senderName: string; // Denormalized for display
+  senderAvatarUrl?: string | null;
+  content: string;
+  timestamp: Date;
+  readBy: string[]; // Array of user/employee IDs who have read it
+}
+
+
+export type View = 'dashboard' | 'schedule' | 'employees' | 'settings' | 'profile' | 'referencing' | 'history' | 'timeclock' | 'messaging';
 
 export type Plan = 'Gratuit' | 'Pro' | 'Pro Plus';
 
@@ -162,6 +184,7 @@ export interface UserPermissions {
   canAccessReferencing: boolean;
   canAccessHistory: boolean;
   canAccessTimeClock: boolean;
+  canAccessMessaging: boolean;
 }
 
 export type UserRole = 'Admin' | 'Custom';
