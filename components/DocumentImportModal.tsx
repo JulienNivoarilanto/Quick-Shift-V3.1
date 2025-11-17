@@ -97,7 +97,7 @@ const DocumentImportModal: React.FC<DocumentImportModalProps> = ({ onClose, onIm
                 if (err instanceof Error) {
                     setError(err.message);
                 } else {
-                    // FIX: Explicitly convert the unknown error type to a string before setting the state.
+                    // FIX: Explicitly convert the unknown error type to a string before setting the state to prevent a TypeScript type error.
                     setError(String(err));
                 }
                 setStep('upload');
