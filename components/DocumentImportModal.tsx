@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-// FIX: Import 'EmployeeDocument' and 'DocumentType' types to resolve 'Cannot find name' error. Removed unused 'ContractType' import.
 import { Employee, EmployeeDocument, DocumentType } from '../types';
 import Modal from './Modal';
 import { Upload, CheckCircle, AlertTriangle } from 'lucide-react';
@@ -98,7 +97,7 @@ const DocumentImportModal: React.FC<DocumentImportModalProps> = ({ onClose, onIm
                 if (err instanceof Error) {
                     setError(err.message);
                 } else {
-                    // FIX: Explicitly convert the unknown error type to a string before setting the state to prevent a TypeScript type error.
+                    // FIX: The `err` variable in a catch block is of type `unknown`. It must be converted to a string before being passed to `setError`, which expects a string or null.
                     setError(String(err));
                 }
                 setStep('upload');

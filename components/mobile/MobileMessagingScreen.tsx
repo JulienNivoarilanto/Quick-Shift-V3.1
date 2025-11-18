@@ -140,6 +140,48 @@ const MobileMessagingScreen: React.FC = () => {
 
     const [selectedConversation, setSelectedConversation] = useState<{ id: string; name: string; type: 'group' | 'direct'; avatar: React.ReactNode } | null>(null);
 
+    const directConversations = useMemo(() => {
+        if (!employee) return [];
+
+        const messagesByConversation = chatMessages.reduce((acc, msg) => {
+            if (messageGroups.some(g => g.id === msg.conversationId)) {
+                return acc;
+            }
+            
+            if (!msg.conversationId.includes(employee.id)) {
+                return acc;
+            }
+
+            if (!acc[msg.conversationId]) {
+                acc[msg.conversationId] = [];
+            }
+            acc[msg.conversationId].push(msg);
+            return acc;
+        }, {} as Record<string, ChatMessage[]>);
+
+        return Object.entries(messagesByConversation)
+            .map(([conversationId, messages]) => {
+                const lastMessage = messages.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                
+                const participantIds = conversationId.split('--');
+                const otherUserId = participantIds.find(id => id !== employee.id);
+                
+                const otherUser = users.find(u => u.id === otherUserId);
+                
+                if (!otherUser) return null;
+
+                return {
+                    id: conversationId,
+                    otherUser: otherUser,
+                    lastMessage: lastMessage,
+                };
+            })
+            .filter((c): c is NonNullable<typeof c> => c !== null)
+            .sort((a, b) => new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime());
+
+    }, [chatMessages, messageGroups, users, employee]);
+
+
     const handleAbsenceSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (window.confirm(t('mobile.confirmAbsenceRequest'))) {
@@ -198,11 +240,6 @@ const MobileMessagingScreen: React.FC = () => {
         sendChatMessage({ conversationId, content });
     };
 
-    const createDirectConversationId = (otherUserId: string) => {
-        if (!employee) return '';
-        return [employee.id, otherUserId].sort().join('--');
-    };
-
     if (selectedConversation) {
         return (
             <div className="p-4 md:p-6 animate-slide-in-up">
@@ -256,12 +293,33 @@ const MobileMessagingScreen: React.FC = () => {
                  )}
                   {activeTab === 'direct' && (
                      <div className="space-y-2">
-                        {users.map(webUser => (
-                            <div key={webUser.id} onClick={() => setSelectedConversation({ id: createDirectConversationId(webUser.id), name: webUser.name, type: 'direct', avatar: <Avatar name={webUser.name} src={webUser.avatarUrl} className="w-10 h-10 rounded-full"/> })} className="flex items-center gap-3 p-3 rounded-lg cursor-pointer bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800">
-                                <Avatar name={webUser.name} src={webUser.avatarUrl} className="w-12 h-12 rounded-full"/>
-                                <p className="font-semibold">{webUser.name}</p>
-                            </div>
-                        ))}
+                         {directConversations.length > 0 ? directConversations.map(convo => {
+                            if (!convo) return null;
+                            const { otherUser, lastMessage } = convo;
+                            return (
+                                <div 
+                                    key={convo.id} 
+                                    onClick={() => setSelectedConversation({ 
+                                        id: convo.id, 
+                                        name: otherUser.name, 
+                                        type: 'direct', 
+                                        avatar: <Avatar name={otherUser.name} src={otherUser.avatarUrl} className="w-10 h-10 rounded-full"/> 
+                                    })} 
+                                    className="flex items-center gap-3 p-3 rounded-lg cursor-pointer bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                >
+                                    <Avatar name={otherUser.name} src={otherUser.avatarUrl} className="w-12 h-12 rounded-full"/>
+                                    <div className="flex-grow overflow-hidden">
+                                        <div className="flex justify-between items-baseline">
+                                            <p className="font-semibold truncate">{otherUser.name}</p>
+                                            <p className="text-xs text-slate-400 flex-shrink-0">{timeAgo(new Date(lastMessage.timestamp))}</p>
+                                        </div>
+                                        <p className="text-sm text-slate-500 truncate">{lastMessage.content}</p>
+                                    </div>
+                                </div>
+                            );
+                        }) : (
+                            <p className="text-center py-10 text-slate-500">{t('messaging.noMessages')}</p>
+                        )}
                      </div>
                  )}
             </div>
