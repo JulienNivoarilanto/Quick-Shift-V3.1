@@ -20,6 +20,7 @@ interface MobileDataContextType {
     submitRequest: (data: any) => Promise<boolean>;
     updateShift: (shift: Shift) => Promise<void>;
     sendChatMessage: (messageData: Omit<ChatMessage, 'id' | 'companyId' | 'timestamp' | 'readBy' | 'senderId' | 'senderName' | 'senderAvatarUrl'>) => Promise<boolean>;
+    markConversationAsRead: (conversationId: string) => Promise<void>;
 }
 
 const MobileDataContext = createContext<MobileDataContextType | undefined>(undefined);
@@ -125,6 +126,29 @@ export const MobileDataProvider: React.FC<{ children: ReactNode }> = ({ children
             setError("Failed to update your shift. Please try again.");
         }
     };
+
+    const markConversationAsRead = async (conversationId: string) => {
+        if (!employee) return;
+    
+        const unreadMessageIds = chatMessages
+            .filter(msg => msg.conversationId === conversationId && !msg.readBy.includes(employee.id))
+            .map(msg => msg.id);
+    
+        if (unreadMessageIds.length > 0) {
+            // Optimistic update
+            setChatMessages(prev => prev.map(msg => 
+                unreadMessageIds.includes(msg.id)
+                    ? { ...msg, readBy: [...msg.readBy, employee.id] }
+                    : msg
+            ));
+            try {
+                await api.apiMarkMessagesAsRead(unreadMessageIds, employee.id);
+            } catch (error) {
+                console.error("Failed to mark mobile messages as read", error);
+                // Snapshot listener will eventually correct the state if this fails.
+            }
+        }
+    };
     
     const value = {
         shifts,
@@ -142,7 +166,8 @@ export const MobileDataProvider: React.FC<{ children: ReactNode }> = ({ children
         refetchData: fetchData,
         submitRequest,
         updateShift,
-        sendChatMessage
+        sendChatMessage,
+        markConversationAsRead,
     };
 
     return (

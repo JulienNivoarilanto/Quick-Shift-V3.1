@@ -30,7 +30,7 @@ const timeAgo = (date: Date): string => {
 };
 
 const SegmentedControl: FC<{
-    tabs: { id: string; label: string; }[];
+    tabs: { id: string; label: string; hasNotification?: boolean }[];
     activeTab: string;
     onTabChange: (id: string) => void;
 }> = ({ tabs, activeTab, onTabChange }) => (
@@ -39,13 +39,14 @@ const SegmentedControl: FC<{
             <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                className={`w-full text-center px-2 py-1.5 text-sm font-semibold rounded-md transition-colors ${
+                className={`w-full text-center px-2 py-1.5 text-sm font-semibold rounded-md transition-colors relative ${
                     activeTab === tab.id
                         ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-sm'
                         : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/50'
                 }`}
             >
                 {tab.label}
+                 {tab.hasNotification && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>}
             </button>
         ))}
     </div>
@@ -124,7 +125,7 @@ const ChatConversation: FC<{
 const MobileMessagingScreen: React.FC = () => {
     const { t } = useLanguage();
     const { employee } = useMobileAuth();
-    const { users, absenceTypes, submitRequest, messageGroups, chatMessages, isLoading: isDataLoading, sendChatMessage } = useMobileData();
+    const { users, inboxMessages, absenceTypes, submitRequest, messageGroups, chatMessages, isLoading: isDataLoading, sendChatMessage, markConversationAsRead } = useMobileData();
     const [activeTab, setActiveTab] = useState<'absence' | 'complaint' | 'group' | 'direct'>('group');
 
     const [absenceData, setAbsenceData] = useState({
@@ -139,6 +140,60 @@ const MobileMessagingScreen: React.FC = () => {
     const [modalInfo, setModalInfo] = useState<{ isOpen: boolean, title: string, body: string }>({ isOpen: false, title: '', body: '' });
 
     const [selectedConversation, setSelectedConversation] = useState<{ id: string; name: string; type: 'group' | 'direct'; avatar: React.ReactNode } | null>(null);
+
+    const [seenRequestIds, setSeenRequestIds] = useState<Set<string>>(() => {
+        const seen = localStorage.getItem('quickshift-seen-requests');
+        return seen ? new Set(JSON.parse(seen)) : new Set();
+    });
+
+    const unreadAbsenceCount = useMemo(() => 
+        inboxMessages.filter(m => m.type === 'absence-request' && m.status !== 'pending' && !seenRequestIds.has(m.id)).length,
+        [inboxMessages, seenRequestIds]
+    );
+
+    const unreadComplaintCount = useMemo(() => 
+        inboxMessages.filter(m => m.type === 'complaint' && m.status !== 'pending' && !seenRequestIds.has(m.id)).length,
+        [inboxMessages, seenRequestIds]
+    );
+
+    const unreadGroupMessagesCount = useMemo(() => 
+        messageGroups.reduce((count, group) => {
+            const hasUnread = chatMessages.some(msg => 
+                msg.conversationId === group.id && 
+                employee && !msg.readBy.includes(employee.id)
+            );
+            return hasUnread ? count + 1 : count;
+        }, 0),
+        [chatMessages, messageGroups, employee]
+    );
+
+    const unreadDirectMessagesCount = useMemo(() => {
+        const directConversationsWithUnread = new Set();
+        chatMessages.forEach(msg => {
+            const isGroupMsg = messageGroups.some(g => g.id === msg.conversationId);
+            if (!isGroupMsg && employee && !msg.readBy.includes(employee.id)) {
+                directConversationsWithUnread.add(msg.conversationId);
+            }
+        });
+        return directConversationsWithUnread.size;
+    }, [chatMessages, messageGroups, employee]);
+
+    useEffect(() => {
+        if (activeTab === 'absence' || activeTab === 'complaint') {
+            const newSeenIds = new Set(seenRequestIds);
+            let updated = false;
+            inboxMessages.forEach(msg => {
+                if (msg.status !== 'pending' && !newSeenIds.has(msg.id)) {
+                    newSeenIds.add(msg.id);
+                    updated = true;
+                }
+            });
+            if (updated) {
+                setSeenRequestIds(newSeenIds);
+                localStorage.setItem('quickshift-seen-requests', JSON.stringify(Array.from(newSeenIds)));
+            }
+        }
+    }, [activeTab, inboxMessages, seenRequestIds]);
 
     const directConversations = useMemo(() => {
         if (!employee) return [];
@@ -230,15 +285,21 @@ const MobileMessagingScreen: React.FC = () => {
     const buttonStyle = "w-full flex justify-center items-center px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-transform transform hover:scale-105";
 
     const tabs = [
-        { id: 'group', label: t('mobile.tabGroups') },
-        { id: 'direct', label: t('mobile.tabDirect') },
-        { id: 'absence', label: t('mobile.tabAbsence') },
-        { id: 'complaint', label: t('mobile.tabComplaint') },
+        { id: 'group', label: t('mobile.tabGroups'), hasNotification: unreadGroupMessagesCount > 0 },
+        { id: 'direct', label: t('mobile.tabDirect'), hasNotification: unreadDirectMessagesCount > 0 },
+        { id: 'absence', label: t('mobile.tabAbsence'), hasNotification: unreadAbsenceCount > 0 },
+        { id: 'complaint', label: t('mobile.tabComplaint'), hasNotification: unreadComplaintCount > 0 },
     ];
 
     const handleSendMessageWrapper = (conversationId: string, content: string) => {
         sendChatMessage({ conversationId, content });
     };
+    
+    const handleConversationOpen = (conversation: { id: string; name: string; type: 'group' | 'direct'; avatar: React.ReactNode }) => {
+        setSelectedConversation(conversation);
+        markConversationAsRead(conversation.id);
+    };
+
 
     if (selectedConversation) {
         return (
@@ -284,7 +345,7 @@ const MobileMessagingScreen: React.FC = () => {
                  {activeTab === 'group' && (
                      <div className="space-y-2">
                          {messageGroups.length > 0 ? messageGroups.map(group => (
-                             <div key={group.id} onClick={() => setSelectedConversation({ id: group.id, name: group.name, type: 'group', avatar: <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0"><Users size={20} /></div> })} className="flex items-center gap-3 p-3 rounded-lg cursor-pointer bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800">
+                             <div key={group.id} onClick={() => handleConversationOpen({ id: group.id, name: group.name, type: 'group', avatar: <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0"><Users size={20} /></div> })} className="flex items-center gap-3 p-3 rounded-lg cursor-pointer bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800">
                                 <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0"><Users size={24} /></div>
                                 <p className="font-semibold truncate">{group.name}</p>
                             </div>
@@ -299,7 +360,7 @@ const MobileMessagingScreen: React.FC = () => {
                             return (
                                 <div 
                                     key={convo.id} 
-                                    onClick={() => setSelectedConversation({ 
+                                    onClick={() => handleConversationOpen({ 
                                         id: convo.id, 
                                         name: otherUser.name, 
                                         type: 'direct', 

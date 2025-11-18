@@ -12,6 +12,7 @@ interface SidebarProps {
   onLogout: () => void;
   isCollapsed: boolean;
   onToggle: () => void;
+  hasUnreadMessages: boolean;
 }
 
 const NavItem: React.FC<{
@@ -21,7 +22,8 @@ const NavItem: React.FC<{
     onClick: () => void;
     isCollapsed: boolean;
     isDisabled?: boolean;
-}> = ({ icon, label, isActive, onClick, isCollapsed, isDisabled }) => {
+    isNotified?: boolean;
+}> = ({ icon, label, isActive, onClick, isCollapsed, isDisabled, isNotified }) => {
     const activeClasses = 'bg-blue-night-900 text-white';
     const inactiveClasses = 'text-blue-night-200 hover:bg-blue-night-900 hover:text-white';
     const disabledClasses = 'text-blue-night-700 cursor-not-allowed opacity-50';
@@ -36,17 +38,18 @@ const NavItem: React.FC<{
 
     return (
         <li
-            className={`flex items-center p-3 my-1 rounded-lg transition-colors duration-200 ${isDisabled ? disabledClasses : (isActive ? activeClasses : inactiveClasses)}`}
+            className={`flex items-center p-3 my-1 rounded-lg transition-colors duration-200 relative ${isDisabled ? disabledClasses : (isActive ? activeClasses : inactiveClasses)}`}
             onClick={handleItemClick}
         >
             {icon}
             <span className={`ml-4 font-medium whitespace-nowrap overflow-hidden transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>{label}</span>
+            {isNotified && !isCollapsed && <span className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>}
         </li>
     );
 };
 
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, onLogout, isCollapsed, onToggle }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, onLogout, isCollapsed, onToggle, hasUnreadMessages }) => {
   const { user, permissions } = useAuth();
   const { t } = useLanguage();
   
@@ -68,7 +71,15 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, onLogout, isCol
             />
             <NavItem icon={<Calendar size={20} />} label={t('sidebar.schedule')} isActive={currentView === 'schedule'} onClick={() => setView('schedule')} isCollapsed={isCollapsed} isDisabled={!permissions.canAccessSchedule} />
             <NavItem icon={<Users size={20} />} label={t('sidebar.employees')} isActive={currentView === 'employees'} onClick={() => setView('employees')} isCollapsed={isCollapsed} isDisabled={!permissions.canAccessEmployees} />
-            <NavItem icon={<MessageSquare size={20} />} label={t('sidebar.messaging')} isActive={currentView === 'messaging'} onClick={() => setView('messaging')} isCollapsed={isCollapsed} isDisabled={!permissions.canAccessMessaging} />
+            <NavItem 
+              icon={<MessageSquare size={20} />} 
+              label={t('sidebar.messaging')} 
+              isActive={currentView === 'messaging'} 
+              onClick={() => setView('messaging')} 
+              isCollapsed={isCollapsed} 
+              isDisabled={!permissions.canAccessMessaging}
+              isNotified={hasUnreadMessages}
+            />
             <NavItem icon={<FileText size={20} />} label={t('sidebar.referencing')} isActive={currentView === 'referencing'} onClick={() => setView('referencing')} isCollapsed={isCollapsed} isDisabled={!permissions.canAccessReferencing} />
             <NavItem icon={<Settings size={20} />} label={t('sidebar.settings')} isActive={currentView === 'settings'} onClick={() => setView('settings')} isCollapsed={isCollapsed} isDisabled={!permissions.canAccessSettings} />
             <NavItem icon={<Gauge size={20} />} label={t('sidebar.timeclock')} isActive={currentView === 'timeclock'} onClick={() => setView('timeclock')} isCollapsed={isCollapsed} isDisabled={!permissions.canAccessTimeClock} />

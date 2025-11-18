@@ -82,6 +82,7 @@ interface DataHandlerContextType {
     handleAddTeam: (teamData: Omit<Team, 'id' | 'companyId'>) => Promise<void>;
     handleUpdateTeam: (team: Team) => Promise<void>;
     handleDeleteTeam: (teamId: string) => Promise<void>;
+    handleMarkConversationAsRead: (conversationId: string) => Promise<void>;
     // FIX: Add handlers for messaging features
     handleAddMessageGroup: (groupData: Omit<MessageGroup, 'id' | 'companyId' | 'createdAt' | 'createdBy'>) => Promise<void>;
     handleUpdateMessageGroup: (group: MessageGroup) => Promise<void>;
@@ -445,6 +446,22 @@ export const DataProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     };
     const handleDeleteChatMessage = (messageId: string) => handleDeleteItem('chatMessages', messageId);
 
+    const handleMarkConversationAsRead = async (conversationId: string) => {
+        if (!user) return;
+        const unreadMessageIds = state.chatMessages
+            .filter(msg => msg.conversationId === conversationId && !msg.readBy.includes(user.id))
+            .map(msg => msg.id);
+    
+        if (unreadMessageIds.length > 0) {
+            try {
+                await api.apiMarkMessagesAsRead(unreadMessageIds, user.id);
+                // The onSnapshot listener will automatically update the state.
+            } catch (error) {
+                console.error("Failed to mark messages as read:", error);
+            }
+        }
+    };
+
 
     const value: DataContextType = { 
         ...state, 
@@ -462,6 +479,7 @@ export const DataProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         handleDeleteHistoryItems,
         handleCreateAdditionalUser, handleUpdateUser, handleDeleteUser,
         handleAddTeam, handleUpdateTeam, handleDeleteTeam,
+        handleMarkConversationAsRead,
         // FIX: Add messaging handlers to context value
         handleAddMessageGroup, handleUpdateMessageGroup, handleDeleteMessageGroup,
         handleSendChatMessage, handleDeleteChatMessage,

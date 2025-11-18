@@ -568,6 +568,21 @@ export const apiDeleteItem = (collectionName: string, itemId: string) => {
     return docRef.delete();
 };
 
+export const apiMarkMessagesAsRead = (messageIds: string[], userId: string) => {
+    if (messageIds.length === 0) {
+        return Promise.resolve();
+    }
+    const batch = db.batch();
+    messageIds.forEach(id => {
+        const docRef = db.collection('chatMessages').doc(id);
+        batch.update(docRef, {
+            readBy: firebase.firestore.FieldValue.arrayUnion(userId)
+        });
+    });
+    return batch.commit();
+};
+
+
 // --- BULK OPERATIONS ---
 export const apiBulkDeleteItems = (collectionName: string, itemIds: string[]) => {
     const batch = db.batch();

@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import Modal from './Modal';
-import { Employee } from '../types';
+import { Employee, Role, ContractType } from '../types';
 import { Loader2, Download } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 

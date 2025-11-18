@@ -25,6 +25,7 @@ interface MessagingProps {
     onDeleteGroup: (groupId: string) => void;
     onSendMessage: (messageData: Omit<ChatMessage, 'id' | 'companyId' | 'timestamp' | 'readBy' | 'senderName' | 'senderAvatarUrl'>) => void;
     onDeleteMessage: (messageId: string) => void;
+    onMarkConversationAsRead: (conversationId: string) => void;
 }
 // #endregion
 
@@ -219,7 +220,7 @@ const ChatWindow: FC<{
 const Messaging: FC<MessagingProps> = (props) => {
     const { t } = useLanguage();
     const { user } = useAuth();
-    const { inboxMessages, messageGroups, chatMessages, employees, teams, absenceTypes, onValidateRequest, onRefuseRequest, onFollowUpComplaint, onAddGroup, onUpdateGroup, onDeleteGroup, onSendMessage } = props;
+    const { inboxMessages, messageGroups, chatMessages, employees, teams, absenceTypes, onValidateRequest, onRefuseRequest, onFollowUpComplaint, onAddGroup, onUpdateGroup, onDeleteGroup, onSendMessage, onMarkConversationAsRead } = props;
 
     const [activeTab, setActiveTab] = useState<'inbox' | 'group' | 'direct'>('inbox');
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -228,6 +229,27 @@ const Messaging: FC<MessagingProps> = (props) => {
     const [groupEditorModal, setGroupEditorModal] = useState<{ isOpen: boolean; group: MessageGroup | null }>({ isOpen: false, group: null });
     
     const allUsersForChat = useMemo(() => [...employees, ...props.users], [employees, props.users]);
+
+    const unreadInboxCount = useMemo(() => inboxMessages.filter(m => m.status === 'pending').length, [inboxMessages]);
+
+    const unreadMessages = useMemo(() => chatMessages.filter(msg => user && !msg.readBy.includes(user.id)), [chatMessages, user]);
+    
+    const unreadGroupMessages = useMemo(() => 
+        unreadMessages.filter(msg => messageGroups.some(g => g.id === msg.conversationId)),
+        [unreadMessages, messageGroups]
+    );
+
+    const unreadDirectMessages = useMemo(() =>
+        unreadMessages.filter(msg => !messageGroups.some(g => g.id === msg.conversationId)),
+        [unreadMessages, messageGroups]
+    );
+
+    const unreadCountByConversation = useMemo(() => 
+        unreadMessages.reduce((acc, msg) => {
+            acc[msg.conversationId] = (acc[msg.conversationId] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>),
+    [unreadMessages]);
     
     const filteredGroups = useMemo(() => {
         return messageGroups.filter(group => group.name.toLowerCase().includes(groupSearchTerm.toLowerCase()));
@@ -254,6 +276,9 @@ const Messaging: FC<MessagingProps> = (props) => {
 
     const handleSelectConversation = (id: string | null) => {
         setSelectedConversationId(id);
+        if(id) {
+            onMarkConversationAsRead(id);
+        }
     };
 
     const handleSaveGroup = (groupData: Omit<MessageGroup, 'id' | 'companyId' | 'createdAt' | 'createdBy'> | MessageGroup) => {
@@ -281,9 +306,18 @@ const Messaging: FC<MessagingProps> = (props) => {
 
             <div className="mt-6 border-b border-gray-200 dark:border-gray-700">
                 <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-                    <button onClick={() => { setActiveTab('inbox'); handleSelectConversation(null); }} className={`flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'inbox' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}><Inbox size={16}/> {t('messaging.inbox')}</button>
-                    <button onClick={() => { setActiveTab('group'); handleSelectConversation(null); }} className={`flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'group' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}><Users size={16}/> {t('messaging.groupChat')}</button>
-                    <button onClick={() => { setActiveTab('direct'); handleSelectConversation(null); }} className={`flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'direct' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}><DirectMessageIcon size={16}/> {t('messaging.directMessages')}</button>
+                    <button onClick={() => { setActiveTab('inbox'); handleSelectConversation(null); }} className={`relative flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'inbox' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                        <Inbox size={16}/> {t('messaging.inbox')}
+                        {unreadInboxCount > 0 && <span className="ml-2 px-2 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full">{unreadInboxCount}</span>}
+                    </button>
+                    <button onClick={() => { setActiveTab('group'); handleSelectConversation(null); }} className={`relative flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'group' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                        <Users size={16}/> {t('messaging.groupChat')}
+                        {unreadGroupMessages.length > 0 && <span className="ml-2 px-2 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full">{unreadGroupMessages.length}</span>}
+                    </button>
+                    <button onClick={() => { setActiveTab('direct'); handleSelectConversation(null); }} className={`relative flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'direct' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                        <DirectMessageIcon size={16}/> {t('messaging.directMessages')}
+                        {unreadDirectMessages.length > 0 && <span className="ml-2 px-2 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full">{unreadDirectMessages.length}</span>}
+                    </button>
                 </nav>
             </div>
 
@@ -331,6 +365,7 @@ const Messaging: FC<MessagingProps> = (props) => {
                                     <div className="flex-grow overflow-y-auto -mx-4">
                                         {filteredGroups.length > 0 ? filteredGroups.map(group => {
                                             const memberCount = new Set([...group.memberIds, ...group.teamIds.flatMap(tid => teams.find(t => t.id === tid)?.memberIds || [])]).size;
+                                            const unreadCount = unreadCountByConversation[group.id] || 0;
                                             return (
                                                 <div key={group.id} onClick={() => handleSelectConversation(group.id)} className={`flex items-center justify-between gap-3 p-3 mx-2 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 ${selectedConversationId === group.id ? 'bg-slate-100 dark:bg-slate-800' : ''}`}>
                                                     <div className="flex items-center gap-3 overflow-hidden">
@@ -341,6 +376,7 @@ const Messaging: FC<MessagingProps> = (props) => {
                                                         </div>
                                                     </div>
                                                     <div className="flex-shrink-0 flex items-center">
+                                                         {unreadCount > 0 && <span className="mr-2 px-2 py-1 text-xs font-bold text-white bg-red-500 rounded-full">{unreadCount}</span>}
                                                         <button onClick={(e) => { e.stopPropagation(); setGroupEditorModal({isOpen: true, group}); }} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full"><Edit size={16} /></button>
                                                         <button onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group); }} className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full"><Trash2 size={16} /></button>
                                                     </div>
@@ -357,12 +393,18 @@ const Messaging: FC<MessagingProps> = (props) => {
                                         <input type="text" placeholder={t('messaging.searchContacts')} value={directSearchTerm} onChange={e => setDirectSearchTerm(e.target.value)} className="input-style w-full"/>
                                     </div>
                                     <div className="flex-grow overflow-y-auto -mx-4">
-                                        {filteredDirectContacts.map(emp => (
-                                            <div key={emp.id} onClick={() => handleSelectConversation(createDirectConversationId(emp.id))} className={`flex items-center gap-3 p-3 mx-2 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 ${selectedConversationId === createDirectConversationId(emp.id) ? 'bg-slate-100 dark:bg-slate-800' : ''}`}>
-                                                <Avatar name={emp.name} src={emp.avatarUrl} className="w-10 h-10 rounded-full"/>
-                                                <p className="font-semibold">{emp.name}</p>
+                                        {filteredDirectContacts.map(emp => {
+                                            const conversationId = createDirectConversationId(emp.id);
+                                            const unreadCount = unreadCountByConversation[conversationId] || 0;
+                                            return (
+                                            <div key={emp.id} onClick={() => handleSelectConversation(conversationId)} className={`flex items-center justify-between gap-3 p-3 mx-2 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 ${selectedConversationId === conversationId ? 'bg-slate-100 dark:bg-slate-800' : ''}`}>
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar name={emp.name} src={emp.avatarUrl} className="w-10 h-10 rounded-full"/>
+                                                    <p className="font-semibold">{emp.name}</p>
+                                                </div>
+                                                {unreadCount > 0 && <span className="px-2 py-1 text-xs font-bold text-white bg-red-500 rounded-full">{unreadCount}</span>}
                                             </div>
-                                        ))}
+                                        )})}
                                     </div>
                                 </>
                            )}

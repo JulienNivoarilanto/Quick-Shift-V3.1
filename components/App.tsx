@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Plan, Employee, Role } from './types';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -45,7 +45,8 @@ export default function App() {
     handleCreateAdditionalUser, handleUpdateUser: handleUpdateOtherUser, handleDeleteUser,
     handleAddTeam, handleUpdateTeam, handleDeleteTeam,
     handleAddMessageGroup, handleUpdateMessageGroup, handleDeleteMessageGroup,
-    handleSendChatMessage, handleDeleteChatMessage,
+    // FIX: Add handleMarkConversationAsRead to useData destructuring
+    handleSendChatMessage, handleDeleteChatMessage, handleMarkConversationAsRead,
     isLoading: isDataLoading
   } = useData();
 
@@ -55,6 +56,18 @@ export default function App() {
   const [employeeEditor, setEmployeeEditor] = useState<{isOpen: boolean, employee: Employee | null}>({isOpen: false, employee: null});
   const [isCsvImportOpen, setIsCsvImportOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  const unreadInboxCount = useMemo(() => 
+    inboxMessages.filter(m => m.status === 'pending').length,
+    [inboxMessages]
+  );
+
+  const unreadChatCount = useMemo(() =>
+      chatMessages.filter(m => user && !m.readBy.includes(user.id)).length,
+      [chatMessages, user]
+  );
+
+  const hasUnreadMessages = unreadInboxCount > 0 || unreadChatCount > 0;
 
   useEffect(() => {
     document.title = t('appName');
@@ -170,6 +183,7 @@ export default function App() {
               onDeleteGroup={handleDeleteMessageGroup}
               onSendMessage={handleSendChatMessage}
               onDeleteMessage={handleDeleteChatMessage}
+              onMarkConversationAsRead={handleMarkConversationAsRead}
             />
           : <div className="text-center p-8 bg-white dark:bg-blue-night-900 rounded-lg shadow-md max-w-lg mx-auto">
                 <MessageSquare size={48} className="mx-auto text-blue-500 dark:text-blue-night-400 mb-4" />
@@ -241,7 +255,7 @@ export default function App() {
   return (
     <>
       <div className="flex h-screen bg-gray-100 dark:bg-blue-night-950 text-gray-800 dark:text-gray-200 font-sans">
-        <Sidebar currentView={view} setView={setView} onLogout={logout} isCollapsed={isSidebarCollapsed} onToggle={toggleSidebar} />
+        <Sidebar currentView={view} setView={setView} onLogout={logout} isCollapsed={isSidebarCollapsed} onToggle={toggleSidebar} hasUnreadMessages={hasUnreadMessages} />
         <div className="flex-1 flex flex-col overflow-hidden">
           <Header 
             employees={employees} absenceTypes={absenceTypes} inboxMessages={inboxMessages}
