@@ -883,7 +883,11 @@
     "installTitle": "Install Quick Shift",
     "installDescription": "Get a better experience. Access your schedule offline and from your home screen.",
     "installNotNow": "Not now",
-    "installAction": "Install"
+    "installAction": "Install",
+    "tabAbsence": "Absence",
+    "tabComplaint": "Complaint",
+    "tabGroups": "Groups",
+    "tabDirect": "Direct"
   },
   "availability": {
     "description": "Click on the time blocks to cycle through your availability: Available, Preferred, or Unavailable.",

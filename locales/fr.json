@@ -883,7 +883,11 @@
     "installTitle": "Installer Quick Shift",
     "installDescription": "Obtenez une meilleure expérience. Accédez à votre planning hors ligne et depuis votre écran d'accueil.",
     "installNotNow": "Plus tard",
-    "installAction": "Installer"
+    "installAction": "Installer",
+    "tabAbsence": "Absence",
+    "tabComplaint": "Plainte",
+    "tabGroups": "Groupes",
+    "tabDirect": "Direct"
   },
   "availability": {
     "description": "Cliquez sur les blocs horaires pour parcourir vos disponibilités : Disponible, Préféré, ou Indisponible.",
