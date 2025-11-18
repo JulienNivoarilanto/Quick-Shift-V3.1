@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { Shift, AbsenceType, Location, Department, InboxMessage, Meeting, Employee, MessageGroup, ChatMessage } from '../types';
+import { Shift, AbsenceType, Location, Department, InboxMessage, Meeting, Employee, MessageGroup, ChatMessage, User } from '../types';
 import * as api from '../services/api';
 import { useMobileAuth } from './MobileAuthContext';
 
@@ -11,6 +11,7 @@ interface MobileDataContextType {
     inboxMessages: InboxMessage[];
     meetings: Meeting[];
     allEmployees: Employee[];
+    users: User[];
     messageGroups: MessageGroup[];
     chatMessages: ChatMessage[];
     isLoading: boolean;
@@ -32,6 +33,7 @@ export const MobileDataProvider: React.FC<{ children: ReactNode }> = ({ children
     const [inboxMessages, setInboxMessages] = useState<InboxMessage[]>([]);
     const [meetings, setMeetings] = useState<Meeting[]>([]);
     const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
     const [messageGroups, setMessageGroups] = useState<MessageGroup[]>([]);
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -53,6 +55,7 @@ export const MobileDataProvider: React.FC<{ children: ReactNode }> = ({ children
             setAllEmployees(data.allEmployees);
             setMessageGroups(data.messageGroups);
             setChatMessages(data.chatMessages);
+            setUsers(data.users);
         } catch (err) {
             console.error(err);
             setError("Failed to load schedule data.");
@@ -131,6 +134,7 @@ export const MobileDataProvider: React.FC<{ children: ReactNode }> = ({ children
         inboxMessages,
         meetings,
         allEmployees,
+        users,
         messageGroups,
         chatMessages,
         isLoading,

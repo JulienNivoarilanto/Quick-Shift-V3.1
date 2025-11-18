@@ -403,7 +403,7 @@ export const apiLoginEmployee = async (email: string, accessCode: string): Promi
     }
 };
 
-export const apiGetMobileData = async (employeeId: string, companyId: string): Promise<{ shifts: Shift[], absenceTypes: AbsenceType[], locations: Location[], departments: Department[], inboxMessages: InboxMessage[], meetings: Meeting[], allEmployees: Employee[], messageGroups: MessageGroup[], chatMessages: ChatMessage[] }> => {
+export const apiGetMobileData = async (employeeId: string, companyId: string): Promise<{ shifts: Shift[], absenceTypes: AbsenceType[], locations: Location[], departments: Department[], inboxMessages: InboxMessage[], meetings: Meeting[], allEmployees: Employee[], messageGroups: MessageGroup[], chatMessages: ChatMessage[], users: User[] }> => {
     try {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -489,10 +489,10 @@ export const apiGetMobileData = async (employeeId: string, companyId: string): P
         }
 
 
-        return { shifts, absenceTypes, locations, departments, inboxMessages, meetings, allEmployees, messageGroups, chatMessages };
+        return { shifts, absenceTypes, locations, departments, inboxMessages, meetings, allEmployees, messageGroups, chatMessages, users: webUsers };
     } catch (error) {
         console.error("Error fetching mobile data:", error);
-        return { shifts: [], absenceTypes: [], locations: [], departments: [], inboxMessages: [], meetings: [], allEmployees: [], messageGroups: [], chatMessages: [] };
+        return { shifts: [], absenceTypes: [], locations: [], departments: [], inboxMessages: [], meetings: [], allEmployees: [], messageGroups: [], chatMessages: [], users: [] };
     }
 };
 

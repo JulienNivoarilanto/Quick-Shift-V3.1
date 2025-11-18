@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 // FIX: Import 'EmployeeDocument' and 'DocumentType' types to resolve 'Cannot find name' error. Removed unused 'ContractType' import.
 import { Employee, EmployeeDocument, DocumentType } from '../types';

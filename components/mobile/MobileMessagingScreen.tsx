@@ -3,7 +3,7 @@ import { useMobileData } from '../../contexts/MobileDataContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Loader2, Send, Users, User, MessageSquare as MessageIcon, ArrowLeft } from 'lucide-react';
 import Modal from '../Modal';
-import { AbsenceType, InboxMessage, MessageGroup, ChatMessage, Employee } from '../../types';
+import { AbsenceType, InboxMessage, MessageGroup, ChatMessage, Employee, User as WebUser } from '../../types';
 import { useMobileAuth } from '../../contexts/MobileAuthContext';
 import Avatar from '../Avatar';
 
@@ -124,8 +124,8 @@ const ChatConversation: FC<{
 const MobileMessagingScreen: React.FC = () => {
     const { t } = useLanguage();
     const { employee } = useMobileAuth();
-    const { absenceTypes, submitRequest, messageGroups, chatMessages, isLoading: isDataLoading, sendChatMessage, allEmployees } = useMobileData();
-    const [activeTab, setActiveTab] = useState<'absence' | 'complaint' | 'group' | 'direct'>('absence');
+    const { users, absenceTypes, submitRequest, messageGroups, chatMessages, isLoading: isDataLoading, sendChatMessage } = useMobileData();
+    const [activeTab, setActiveTab] = useState<'absence' | 'complaint' | 'group' | 'direct'>('group');
 
     const [absenceData, setAbsenceData] = useState({
         absenceTypeId: absenceTypes[0]?.id || '',
@@ -188,19 +188,19 @@ const MobileMessagingScreen: React.FC = () => {
     const buttonStyle = "w-full flex justify-center items-center px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-transform transform hover:scale-105";
 
     const tabs = [
-        { id: 'absence', label: t('mobile.tabAbsence') },
-        { id: 'complaint', label: t('mobile.tabComplaint') },
         { id: 'group', label: t('mobile.tabGroups') },
         { id: 'direct', label: t('mobile.tabDirect') },
+        { id: 'absence', label: t('mobile.tabAbsence') },
+        { id: 'complaint', label: t('mobile.tabComplaint') },
     ];
 
     const handleSendMessageWrapper = (conversationId: string, content: string) => {
         sendChatMessage({ conversationId, content });
     };
 
-    const createDirectConversationId = (otherEmployeeId: string) => {
+    const createDirectConversationId = (otherUserId: string) => {
         if (!employee) return '';
-        return [employee.id, otherEmployeeId].sort().join('--');
+        return [employee.id, otherUserId].sort().join('--');
     };
 
     if (selectedConversation) {
@@ -256,10 +256,10 @@ const MobileMessagingScreen: React.FC = () => {
                  )}
                   {activeTab === 'direct' && (
                      <div className="space-y-2">
-                        {allEmployees.filter(e => e.id !== employee?.id).map(emp => (
-                            <div key={emp.id} onClick={() => setSelectedConversation({ id: createDirectConversationId(emp.id), name: emp.name, type: 'direct', avatar: <Avatar name={emp.name} src={emp.avatarUrl} className="w-10 h-10 rounded-full"/> })} className="flex items-center gap-3 p-3 rounded-lg cursor-pointer bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800">
-                                <Avatar name={emp.name} src={emp.avatarUrl} className="w-12 h-12 rounded-full"/>
-                                <p className="font-semibold">{emp.name}</p>
+                        {users.map(webUser => (
+                            <div key={webUser.id} onClick={() => setSelectedConversation({ id: createDirectConversationId(webUser.id), name: webUser.name, type: 'direct', avatar: <Avatar name={webUser.name} src={webUser.avatarUrl} className="w-10 h-10 rounded-full"/> })} className="flex items-center gap-3 p-3 rounded-lg cursor-pointer bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800">
+                                <Avatar name={webUser.name} src={webUser.avatarUrl} className="w-12 h-12 rounded-full"/>
+                                <p className="font-semibold">{webUser.name}</p>
                             </div>
                         ))}
                      </div>
