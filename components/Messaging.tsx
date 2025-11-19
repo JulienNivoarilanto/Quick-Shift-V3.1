@@ -250,6 +250,13 @@ const Messaging: FC<MessagingProps> = (props) => {
             return acc;
         }, {} as Record<string, number>),
     [unreadMessages]);
+
+    // Auto-mark as read if new messages arrive while the conversation is open
+    useEffect(() => {
+        if (selectedConversationId) {
+            onMarkConversationAsRead(selectedConversationId);
+        }
+    }, [selectedConversationId, chatMessages, onMarkConversationAsRead]);
     
     const filteredGroups = useMemo(() => {
         return messageGroups.filter(group => group.name.toLowerCase().includes(groupSearchTerm.toLowerCase()));

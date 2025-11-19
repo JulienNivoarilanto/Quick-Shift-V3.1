@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Employee, ContractType } from '../types';
+import { Employee, ContractType, EmployeeDocument, DocumentType } from '../types';
 import Modal from './Modal';
 import { Upload, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
