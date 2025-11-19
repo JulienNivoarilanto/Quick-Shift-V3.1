@@ -109,11 +109,13 @@ const GroupEditorModal: FC<GroupEditorModalProps> = ({ isOpen, onClose, onSave, 
 // #region SHARED COMPONENTS
 const ChatWindow: FC<{
     conversationId: string;
+    conversationName: string;
+    conversationAvatar: React.ReactNode;
     chatMessages: ChatMessage[];
     allUsers: (User | Employee)[];
     currentUser: User;
     onSendMessage: (conversationId: string, content: string) => void;
-}> = ({ conversationId, chatMessages, allUsers, currentUser, onSendMessage }) => {
+}> = ({ conversationId, conversationName, conversationAvatar, chatMessages, allUsers, currentUser, onSendMessage }) => {
     const { t } = useLanguage();
     const [newMessage, setNewMessage] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -166,7 +168,14 @@ const ChatWindow: FC<{
     };
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full bg-white dark:bg-slate-900 rounded-lg shadow-md overflow-hidden">
+            {/* Header: Group/User Name */}
+            <div className="p-3 border-b border-gray-200 dark:border-slate-800 flex items-center gap-3 bg-gray-50 dark:bg-slate-800/50 flex-shrink-0">
+                {conversationAvatar}
+                <h3 className="font-bold text-lg text-slate-800 dark:text-white truncate">{conversationName}</h3>
+            </div>
+
+            {/* Messages Area */}
             <div className="flex-grow overflow-y-auto p-4 space-y-4">
                 {conversationMessages.length === 0 ? (
                     <div className="text-center text-slate-500 py-10">{t('messaging.noConversation')}</div>
@@ -177,9 +186,18 @@ const ChatWindow: FC<{
                         return (
                             <div key={msg.id} className={`flex items-end gap-2 ${isSentByMe ? 'justify-end' : ''}`}>
                                 {!isSentByMe && <Avatar name={sender?.name || '?'} src={sender?.avatarUrl || null} className="w-8 h-8 rounded-full"/>}
-                                <div className={`max-w-xs md:max-w-md p-3 rounded-2xl ${isSentByMe ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-200 dark:bg-slate-700 rounded-bl-none'}`}>
-                                    <p className="text-sm">{msg.content}</p>
-                                    <p className={`text-xs mt-1 ${isSentByMe ? 'text-blue-200' : 'text-slate-500 dark:text-slate-400'}`}>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                <div className={`flex flex-col ${isSentByMe ? 'items-end' : 'items-start'} max-w-[80%] md:max-w-[60%]`}>
+                                    {!isSentByMe && (
+                                        <span className="text-xs text-slate-500 dark:text-slate-400 ml-1 mb-1">
+                                            {msg.senderName || sender?.name || 'Unknown'}
+                                        </span>
+                                    )}
+                                    <div className={`p-3 rounded-2xl ${isSentByMe ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-200 dark:bg-slate-700 rounded-bl-none'}`}>
+                                        <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                                        <p className={`text-[10px] mt-1 text-right ${isSentByMe ? 'text-blue-200' : 'text-slate-500 dark:text-slate-400'}`}>
+                                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         );
@@ -187,10 +205,12 @@ const ChatWindow: FC<{
                 )}
                  <div ref={messagesEndRef} />
             </div>
-            <div className="p-4 border-t dark:border-slate-700">
+
+            {/* Input Area */}
+            <div className="p-4 border-t dark:border-slate-700 flex-shrink-0 bg-white dark:bg-slate-900">
                 <div className="relative">
                     {showEmojiPicker && (
-                        <div ref={emojiPickerRef} className="absolute bottom-full right-0 mb-2 bg-white dark:bg-slate-800 shadow-lg rounded-lg p-2 grid grid-cols-4 gap-2 w-40">
+                        <div ref={emojiPickerRef} className="absolute bottom-full right-0 mb-2 bg-white dark:bg-slate-800 shadow-lg rounded-lg p-2 grid grid-cols-4 gap-2 w-40 z-10">
                             {EMOJIS.map(emoji => (
                                 <button key={emoji} onClick={() => handleEmojiSelect(emoji)} className="text-xl p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700">
                                     {emoji}
@@ -305,6 +325,29 @@ const Messaging: FC<MessagingProps> = (props) => {
         }
     };
 
+    const getConversationDetails = () => {
+        if (activeTab === 'group') {
+            const group = messageGroups.find(g => g.id === selectedConversationId);
+            if (!group) return null;
+            return {
+                title: group.name,
+                avatar: <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-300 flex-shrink-0"><Users size={20} /></div>
+            };
+        } else {
+             if (!selectedConversationId || !user) return null;
+             const parts = selectedConversationId.split('--');
+             const otherId = parts.find(id => id !== user.id);
+             const contact = allUsersForChat.find(u => u.id === otherId);
+             if (!contact) return null;
+             return {
+                 title: contact.name,
+                 avatar: <Avatar name={contact.name} src={contact.avatarUrl} className="w-10 h-10 rounded-full flex-shrink-0"/>
+             }
+        }
+    }
+
+    const selectedDetails = getConversationDetails();
+
 
     return (
         <div className="animate-slide-in-up">
@@ -332,7 +375,7 @@ const Messaging: FC<MessagingProps> = (props) => {
                 {/* Inbox View */}
                 {activeTab === 'inbox' && (
                     <div className="bg-white dark:bg-slate-900 rounded-lg shadow-md p-4">
-                        <div className="max-h-[70vh] overflow-y-auto">
+                        <div className="max-h-[calc(100vh-14rem)] overflow-y-auto">
                            {inboxMessages.length > 0 ? (
                                 inboxMessages.sort((a,b) => b.date.getTime() - a.date.getTime()).map(message => {
                                     const employee = employees.find(e => e.id === message.employeeId);
@@ -358,23 +401,23 @@ const Messaging: FC<MessagingProps> = (props) => {
                 
                 {/* Group and Direct Chat Views */}
                 {(activeTab === 'group' || activeTab === 'direct') && (
-                    <div className="grid grid-cols-12 gap-4 h-[75vh]">
-                        <div className="col-span-4 bg-white dark:bg-slate-900 rounded-lg shadow-md p-4 flex flex-col">
+                    <div className="grid grid-cols-12 gap-4 h-[calc(100vh-14rem)]">
+                        <div className="col-span-4 bg-white dark:bg-slate-900 rounded-lg shadow-md p-4 flex flex-col h-full overflow-hidden">
                            {activeTab === 'group' && (
                                 <>
-                                    <div className="flex justify-between items-center mb-2">
+                                    <div className="flex justify-between items-center mb-2 flex-shrink-0">
                                         <h3 className="font-bold text-lg">{t('messaging.groupChat')}</h3>
                                         <button onClick={() => setGroupEditorModal({ isOpen: true, group: null })} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"><PlusCircle size={20}/></button>
                                     </div>
-                                    <div className="relative mb-2">
+                                    <div className="relative mb-2 flex-shrink-0">
                                         <input type="text" placeholder={t('messaging.searchGroups')} value={groupSearchTerm} onChange={e => setGroupSearchTerm(e.target.value)} className="input-style w-full"/>
                                     </div>
-                                    <div className="flex-grow overflow-y-auto -mx-4">
+                                    <div className="flex-grow overflow-y-auto -mx-2 px-2">
                                         {filteredGroups.length > 0 ? filteredGroups.map(group => {
                                             const memberCount = new Set([...group.memberIds, ...group.teamIds.flatMap(tid => teams.find(t => t.id === tid)?.memberIds || [])]).size;
                                             const unreadCount = unreadCountByConversation[group.id] || 0;
                                             return (
-                                                <div key={group.id} onClick={() => handleSelectConversation(group.id)} className={`flex items-center justify-between gap-3 p-3 mx-2 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 ${selectedConversationId === group.id ? 'bg-slate-100 dark:bg-slate-800' : ''}`}>
+                                                <div key={group.id} onClick={() => handleSelectConversation(group.id)} className={`flex items-center justify-between gap-3 p-3 my-1 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 ${selectedConversationId === group.id ? 'bg-slate-100 dark:bg-slate-800' : ''}`}>
                                                     <div className="flex items-center gap-3 overflow-hidden">
                                                         <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0"><Users size={20} /></div>
                                                         <div className="truncate">
@@ -395,16 +438,16 @@ const Messaging: FC<MessagingProps> = (props) => {
                            )}
                            {activeTab === 'direct' && (
                                 <>
-                                    <h3 className="font-bold text-lg mb-2">{t('messaging.directMessages')}</h3>
-                                    <div className="relative mb-2">
+                                    <h3 className="font-bold text-lg mb-2 flex-shrink-0">{t('messaging.directMessages')}</h3>
+                                    <div className="relative mb-2 flex-shrink-0">
                                         <input type="text" placeholder={t('messaging.searchContacts')} value={directSearchTerm} onChange={e => setDirectSearchTerm(e.target.value)} className="input-style w-full"/>
                                     </div>
-                                    <div className="flex-grow overflow-y-auto -mx-4">
+                                    <div className="flex-grow overflow-y-auto -mx-2 px-2">
                                         {filteredDirectContacts.map(emp => {
                                             const conversationId = createDirectConversationId(emp.id);
                                             const unreadCount = unreadCountByConversation[conversationId] || 0;
                                             return (
-                                            <div key={emp.id} onClick={() => handleSelectConversation(conversationId)} className={`flex items-center justify-between gap-3 p-3 mx-2 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 ${selectedConversationId === conversationId ? 'bg-slate-100 dark:bg-slate-800' : ''}`}>
+                                            <div key={emp.id} onClick={() => handleSelectConversation(conversationId)} className={`flex items-center justify-between gap-3 p-3 my-1 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 ${selectedConversationId === conversationId ? 'bg-slate-100 dark:bg-slate-800' : ''}`}>
                                                 <div className="flex items-center gap-3">
                                                     <Avatar name={emp.name} src={emp.avatarUrl} className="w-10 h-10 rounded-full"/>
                                                     <p className="font-semibold">{emp.name}</p>
@@ -416,17 +459,19 @@ const Messaging: FC<MessagingProps> = (props) => {
                                 </>
                            )}
                         </div>
-                        <div className="col-span-8 bg-white dark:bg-slate-900 rounded-lg shadow-md flex flex-col">
-                            {selectedConversationId ? (
+                        <div className="col-span-8 h-full">
+                            {selectedConversationId && selectedDetails ? (
                                 <ChatWindow 
                                     conversationId={selectedConversationId}
+                                    conversationName={selectedDetails.title}
+                                    conversationAvatar={selectedDetails.avatar}
                                     chatMessages={chatMessages}
                                     allUsers={allUsersForChat}
                                     currentUser={user!}
                                     onSendMessage={handleSendMessage}
                                 />
                             ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-slate-500 p-8 text-center">
+                                <div className="bg-white dark:bg-slate-900 rounded-lg shadow-md flex flex-col items-center justify-center h-full text-slate-500 p-8 text-center">
                                     <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-full mb-4"><DirectMessageIcon size={32}/></div>
                                     <h4 className="font-bold text-lg">{activeTab === 'group' ? t('messaging.selectGroupToStart') : t('messaging.selectContactToStart')}</h4>
                                     <p className="text-sm">{t('messaging.noSelection')}</p>

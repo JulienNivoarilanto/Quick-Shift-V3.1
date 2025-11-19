@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Employee, ContractType, EmployeeDocument, DocumentType } from '../types';
 import Modal from './Modal';
@@ -97,7 +96,6 @@ const DocumentImportModal: React.FC<DocumentImportModalProps> = ({ onClose, onIm
                 if (err instanceof Error) {
                     setError(err.message);
                 } else {
-                    // FIX: The `err` variable in a catch block is of type `unknown`. It must be converted to a string before being passed to `setError`, which expects a string or null.
                     setError(String(err));
                 }
                 setStep('upload');
