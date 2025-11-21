@@ -242,6 +242,7 @@ export interface InboxMessage {
   startDate?: Date;
   endDate?: Date;
   refusalReason?: string;
+  processedBy?: string;
   companyId: string;
 }
 

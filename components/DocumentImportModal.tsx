@@ -23,7 +23,7 @@ const DocumentImportModal: React.FC<DocumentImportModalProps> = ({ onClose, onIm
 
     const REQUIRED_HEADERS = ['name', 'type'];
     const ALL_HEADERS = ['name', 'type', 'number', 'description', 'expirationdate', 'isvalid'];
-    const docTypeMap = new Map(documentTypes.map(dt => [dt.name.toLowerCase(), dt.id] as [string, string]));
+    const docTypeMap = new Map<string, string>(documentTypes.map(dt => [dt.name.toLowerCase(), dt.id]));
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -60,7 +60,7 @@ const DocumentImportModal: React.FC<DocumentImportModalProps> = ({ onClose, onIm
                         }
                     });
                     
-                    const typeName = entry.type?.toLowerCase();
+                    const typeName = String(entry.type || '').toLowerCase();
                     const typeId = docTypeMap.get(typeName);
 
                     if (entry.name && typeId) {
@@ -72,14 +72,14 @@ const DocumentImportModal: React.FC<DocumentImportModalProps> = ({ onClose, onIm
                             }
                         }
 
-                        const isValid = entry.isvalid ? (entry.isvalid.toLowerCase() === 'true' || entry.isvalid === '1') : true;
+                        const isValid = entry.isvalid ? (String(entry.isvalid).toLowerCase() === 'true' || entry.isvalid === '1') : true;
 
                         data.push({
                             employeeId: employee.id,
                             typeId: typeId,
-                            name: entry.name,
-                            number: entry.number,
-                            description: entry.description,
+                            name: String(entry.name),
+                            number: entry.number ? String(entry.number) : undefined,
+                            description: entry.description ? String(entry.description) : undefined,
                             expirationDate: expirationDate,
                             isValid: isValid,
                         });

@@ -3,6 +3,7 @@ import { InboxMessage, Employee, AbsenceType } from '../types';
 import Avatar from './Avatar';
 import { Check, X, Send, ArrowRight } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import Modal from './Modal';
 
 interface MessageItemProps {
     message: InboxMessage;
@@ -44,6 +45,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, employee, absenceTyp
     const { t } = useLanguage();
     const [isRefusing, setIsRefusing] = useState(false);
     const [refusalReason, setRefusalReason] = useState('');
+    const [showValidationConfirm, setShowValidationConfirm] = useState(false);
 
     const handleRefuseClick = () => {
         if(isRefusing && refusalReason.trim()) {
@@ -58,6 +60,11 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, employee, absenceTyp
     const handleCancelRefuse = () => {
         setIsRefusing(false);
         setRefusalReason('');
+    };
+
+    const handleConfirmValidation = () => {
+        onValidate(message.id);
+        setShowValidationConfirm(false);
     };
 
     return (
@@ -102,7 +109,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, employee, absenceTyp
                                 <div className="flex items-center space-x-2">
                                     {message.type === 'absence-request' && (
                                         <>
-                                            <button onClick={() => onValidate(message.id)} className="flex items-center text-xs font-semibold px-3 py-1 rounded-full bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900">
+                                            <button onClick={() => setShowValidationConfirm(true)} className="flex items-center text-xs font-semibold px-3 py-1 rounded-full bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900">
                                                 <Check size={14} className="mr-1"/> {t('inbox.validate')}
                                             </button>
                                             <button onClick={handleRefuseClick} className="flex items-center text-xs font-semibold px-3 py-1 rounded-full bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900">
@@ -119,18 +126,46 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, employee, absenceTyp
                              )}
                         </div>
                     ) : (
-                        <div className="mt-2">
+                        <div className="mt-2 flex items-center">
                             <StatusBadge status={message.status} />
-                            {message.status === 'refused' && message.refusalReason && (
-                                <div className="mt-1 p-2 bg-red-50 dark:bg-red-900/20 rounded-md text-xs">
-                                    <p className="font-semibold text-red-800 dark:text-red-300">{t('inbox.refusalReason')}:</p>
-                                    <p className="text-red-700 dark:text-red-400">{message.refusalReason}</p>
-                                </div>
+                            {message.processedBy && (
+                                <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">
+                                    by {message.processedBy}
+                                </span>
                             )}
+                        </div>
+                    )}
+                    
+                    {message.status === 'refused' && message.refusalReason && (
+                        <div className="mt-1 p-2 bg-red-50 dark:bg-red-900/20 rounded-md text-xs">
+                            <p className="font-semibold text-red-800 dark:text-red-300">{t('inbox.refusalReason')}:</p>
+                            <p className="text-red-700 dark:text-red-400">{message.refusalReason}</p>
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* Validation Confirmation Modal */}
+            {showValidationConfirm && (
+                <Modal
+                    isOpen={true}
+                    onClose={() => setShowValidationConfirm(false)}
+                    title="Validate Absence Request"
+                    footer={
+                        <>
+                            <button onClick={() => setShowValidationConfirm(false)} className="btn-secondary">{t('modals.cancel')}</button>
+                            <button onClick={handleConfirmValidation} className="btn-primary">{t('inbox.validate')}</button>
+                        </>
+                    }
+                    size="md"
+                >
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Are you sure you want to validate this request? 
+                        <br/><br/>
+                        <strong>This action will automatically create an absence for {employee.name} from {message.startDate?.toLocaleDateString()} to {message.endDate?.toLocaleDateString()} on the calendar.</strong>
+                    </p>
+                </Modal>
+            )}
         </div>
     );
 };

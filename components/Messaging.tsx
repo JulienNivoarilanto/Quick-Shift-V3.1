@@ -2,7 +2,7 @@ import React, { useState, useMemo, FC, useRef, useEffect } from 'react';
 import { InboxMessage, MessageGroup, ChatMessage, Employee, Team, User, AbsenceType } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Inbox, Users, MessageSquare as DirectMessageIcon, PlusCircle, Search, Edit, Trash2, Send, Paperclip, Smile, MoreVertical, X } from 'lucide-react';
+import { Inbox, Users, MessageSquare as DirectMessageIcon, PlusCircle, Search, Edit, Trash2, Send, Paperclip, Smile, MoreVertical, X, CheckSquare, XSquare } from 'lucide-react';
 import MessageItem from './MessageItem';
 import Modal from './Modal';
 import Avatar from './Avatar';
@@ -26,6 +26,7 @@ interface MessagingProps {
     onSendMessage: (messageData: Omit<ChatMessage, 'id' | 'companyId' | 'timestamp' | 'readBy' | 'senderName' | 'senderAvatarUrl'>) => void;
     onDeleteMessage: (messageId: string) => void;
     onMarkConversationAsRead: (conversationId: string) => void;
+    onBulkDeleteMessages: (messageIds: string[]) => void;
 }
 // #endregion
 
@@ -115,13 +116,19 @@ const ChatWindow: FC<{
     allUsers: (User | Employee)[];
     currentUser: User;
     onSendMessage: (conversationId: string, content: string) => void;
-}> = ({ conversationId, conversationName, conversationAvatar, chatMessages, allUsers, currentUser, onSendMessage }) => {
+    onDeleteMessage: (messageId: string) => void;
+    onBulkDeleteMessages: (messageIds: string[]) => void;
+}> = ({ conversationId, conversationName, conversationAvatar, chatMessages, allUsers, currentUser, onSendMessage, onDeleteMessage, onBulkDeleteMessages }) => {
     const { t } = useLanguage();
     const [newMessage, setNewMessage] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const emojiPickerRef = useRef<HTMLDivElement>(null);
     const emojiButtonRef = useRef<HTMLButtonElement>(null);
+    
+    // Selection State
+    const [isSelectionMode, setIsSelectionMode] = useState(false);
+    const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
 
     const EMOJIS = ['😊', '😂', '❤️', '👍', '🙏', '🎉', '🤔', '😢'];
 
@@ -166,13 +173,55 @@ const ChatWindow: FC<{
         setNewMessage(prev => prev + emoji);
         setShowEmojiPicker(false);
     };
+    
+    const toggleSelectionMode = () => {
+        setIsSelectionMode(!isSelectionMode);
+        setSelectedMessageIds([]);
+    };
+
+    const handleSelectMessage = (id: string) => {
+        if (!isSelectionMode) return;
+        setSelectedMessageIds(prev => 
+            prev.includes(id) ? prev.filter(mid => mid !== id) : [...prev, id]
+        );
+    };
+
+    const handleBulkDelete = () => {
+        if (selectedMessageIds.length === 0) return;
+        if (window.confirm(`Are you sure you want to delete ${selectedMessageIds.length} messages?`)) {
+            onBulkDeleteMessages(selectedMessageIds);
+            setSelectedMessageIds([]);
+            setIsSelectionMode(false);
+        }
+    };
 
     return (
         <div className="flex flex-col h-full bg-white dark:bg-slate-900 rounded-lg shadow-md overflow-hidden">
             {/* Header: Group/User Name */}
-            <div className="p-3 border-b border-gray-200 dark:border-slate-800 flex items-center gap-3 bg-gray-50 dark:bg-slate-800/50 flex-shrink-0">
-                {conversationAvatar}
-                <h3 className="font-bold text-lg text-slate-800 dark:text-white truncate">{conversationName}</h3>
+            <div className="p-3 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between bg-gray-50 dark:bg-slate-800/50 flex-shrink-0 h-16">
+                <div className="flex items-center gap-3 truncate">
+                    {conversationAvatar}
+                    <div className="truncate">
+                        <h3 className="font-bold text-lg text-slate-800 dark:text-white truncate">{conversationName}</h3>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                    {isSelectionMode ? (
+                        <>
+                            <span className="text-sm font-semibold mr-2">{selectedMessageIds.length} selected</span>
+                            <button onClick={handleBulkDelete} disabled={selectedMessageIds.length === 0} className="p-2 text-red-600 hover:bg-red-100 rounded-full disabled:opacity-50">
+                                <Trash2 size={20} />
+                            </button>
+                            <button onClick={toggleSelectionMode} className="p-2 text-slate-600 hover:bg-slate-200 rounded-full">
+                                <XSquare size={20} />
+                            </button>
+                        </>
+                    ) : (
+                        <button onClick={toggleSelectionMode} className="p-2 text-slate-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700 rounded-full" title="Select Messages">
+                            <CheckSquare size={20} />
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Messages Area */}
@@ -183,21 +232,50 @@ const ChatWindow: FC<{
                     conversationMessages.map(msg => {
                         const isSentByMe = msg.senderId === currentUser.id;
                         const sender = userMap.get(msg.senderId);
+                        const isSelected = selectedMessageIds.includes(msg.id);
+                        
                         return (
-                            <div key={msg.id} className={`flex items-end gap-2 ${isSentByMe ? 'justify-end' : ''}`}>
-                                {!isSentByMe && <Avatar name={sender?.name || '?'} src={sender?.avatarUrl || null} className="w-8 h-8 rounded-full"/>}
-                                <div className={`flex flex-col ${isSentByMe ? 'items-end' : 'items-start'} max-w-[80%] md:max-w-[60%]`}>
+                            <div 
+                                key={msg.id} 
+                                onClick={() => handleSelectMessage(msg.id)}
+                                className={`flex items-end gap-2 group ${isSentByMe ? 'justify-end' : ''} ${isSelectionMode ? 'cursor-pointer' : ''}`}
+                            >
+                                {isSelectionMode && (
+                                    <div className={`flex-shrink-0 ${isSentByMe ? 'order-last ml-2' : 'order-first mr-2'}`}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={isSelected} 
+                                            onChange={() => handleSelectMessage(msg.id)}
+                                            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 pointer-events-none" 
+                                        />
+                                    </div>
+                                )}
+                                
+                                {!isSentByMe && !isSelectionMode && <Avatar name={sender?.name || '?'} src={sender?.avatarUrl || null} className="w-8 h-8 rounded-full flex-shrink-0"/>}
+                                
+                                <div className={`flex flex-col ${isSentByMe ? 'items-end' : 'items-start'} max-w-[80%] md:max-w-[60%] relative`}>
                                     {!isSentByMe && (
-                                        <span className="text-xs text-slate-500 dark:text-slate-400 ml-1 mb-1">
-                                            {msg.senderName || sender?.name || 'Unknown'}
-                                        </span>
+                                        <div className="flex items-baseline justify-between w-full">
+                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 ml-1 mb-1 truncate">
+                                                {msg.senderName || sender?.name || 'Unknown'}
+                                            </span>
+                                        </div>
                                     )}
-                                    <div className={`p-3 rounded-2xl ${isSentByMe ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-200 dark:bg-slate-700 rounded-bl-none'}`}>
+                                    <div className={`p-3 rounded-2xl relative ${isSentByMe ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-200 dark:bg-slate-700 rounded-bl-none'} ${isSelected ? 'ring-2 ring-yellow-400' : ''}`}>
                                         <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
                                         <p className={`text-[10px] mt-1 text-right ${isSentByMe ? 'text-blue-200' : 'text-slate-500 dark:text-slate-400'}`}>
                                             {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </p>
                                     </div>
+                                    
+                                    {!isSelectionMode && (
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); if(window.confirm('Delete message?')) onDeleteMessage(msg.id); }} 
+                                            className={`absolute top-1/2 -translate-y-1/2 p-1 rounded-full bg-slate-100 dark:bg-slate-800 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity ${isSentByMe ? '-left-8' : '-right-8'}`}
+                                        >
+                                            <Trash2 size={14} className="text-red-500"/>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         );
@@ -224,11 +302,12 @@ const ChatWindow: FC<{
                         onChange={e => setNewMessage(e.target.value)}
                         onKeyPress={e => e.key === 'Enter' && handleSend()}
                         placeholder={t('messaging.typeMessage')}
-                        className="w-full pl-4 pr-20 py-3 rounded-full bg-slate-100 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        disabled={isSelectionMode}
+                        className="w-full pl-4 pr-20 py-3 rounded-full bg-slate-100 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                     />
                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
-                        <button ref={emojiButtonRef} onClick={() => setShowEmojiPicker(prev => !prev)} className="p-2 text-slate-500 hover:text-blue-600"><Smile size={20}/></button>
-                        <button onClick={handleSend} className="p-2.5 bg-blue-600 text-white rounded-full ml-1 hover:bg-blue-700 transition-colors"><Send size={20}/></button>
+                        <button ref={emojiButtonRef} onClick={() => setShowEmojiPicker(prev => !prev)} disabled={isSelectionMode} className="p-2 text-slate-500 hover:text-blue-600 disabled:opacity-50"><Smile size={20}/></button>
+                        <button onClick={handleSend} disabled={isSelectionMode} className="p-2.5 bg-blue-600 text-white rounded-full ml-1 hover:bg-blue-700 transition-colors disabled:bg-slate-400"><Send size={20}/></button>
                     </div>
                 </div>
             </div>
@@ -240,7 +319,7 @@ const ChatWindow: FC<{
 const Messaging: FC<MessagingProps> = (props) => {
     const { t } = useLanguage();
     const { user } = useAuth();
-    const { inboxMessages, messageGroups, chatMessages, employees, teams, absenceTypes, onValidateRequest, onRefuseRequest, onFollowUpComplaint, onAddGroup, onUpdateGroup, onDeleteGroup, onSendMessage, onMarkConversationAsRead } = props;
+    const { inboxMessages, messageGroups, chatMessages, employees, teams, absenceTypes, onValidateRequest, onRefuseRequest, onFollowUpComplaint, onAddGroup, onUpdateGroup, onDeleteGroup, onSendMessage, onDeleteMessage, onMarkConversationAsRead, onBulkDeleteMessages } = props;
 
     const [activeTab, setActiveTab] = useState<'inbox' | 'group' | 'direct'>('inbox');
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -350,11 +429,20 @@ const Messaging: FC<MessagingProps> = (props) => {
 
 
     return (
-        <div className="animate-slide-in-up">
-            <h2 className="text-3xl font-bold text-gray-800 dark:text-white">{t('messaging.title')}</h2>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">{t('messaging.description')}</p>
+        <div className="animate-slide-in-up h-[calc(100vh-7rem)] flex flex-col">
+            <div className="flex justify-between items-start flex-shrink-0">
+                <div>
+                    <h2 className="text-3xl font-bold text-gray-800 dark:text-white">{t('messaging.title')}</h2>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1">{t('messaging.description')}</p>
+                </div>
+                {selectedDetails && (
+                    <div className="md:hidden bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm font-semibold max-w-[150px] truncate">
+                        {selectedDetails.title}
+                    </div>
+                )}
+            </div>
 
-            <div className="mt-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="mt-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                 <nav className="-mb-px flex space-x-8" aria-label="Tabs">
                     <button onClick={() => { setActiveTab('inbox'); handleSelectConversation(null); }} className={`relative flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'inbox' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
                         <Inbox size={16}/> {t('messaging.inbox')}
@@ -371,11 +459,11 @@ const Messaging: FC<MessagingProps> = (props) => {
                 </nav>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 flex-grow overflow-hidden relative">
                 {/* Inbox View */}
                 {activeTab === 'inbox' && (
-                    <div className="bg-white dark:bg-slate-900 rounded-lg shadow-md p-4">
-                        <div className="max-h-[calc(100vh-14rem)] overflow-y-auto">
+                    <div className="bg-white dark:bg-slate-900 rounded-lg shadow-md p-4 h-full flex flex-col">
+                        <div className="flex-grow overflow-y-auto">
                            {inboxMessages.length > 0 ? (
                                 inboxMessages.sort((a,b) => b.date.getTime() - a.date.getTime()).map(message => {
                                     const employee = employees.find(e => e.id === message.employeeId);
@@ -401,8 +489,8 @@ const Messaging: FC<MessagingProps> = (props) => {
                 
                 {/* Group and Direct Chat Views */}
                 {(activeTab === 'group' || activeTab === 'direct') && (
-                    <div className="grid grid-cols-12 gap-4 h-[calc(100vh-14rem)]">
-                        <div className="col-span-4 bg-white dark:bg-slate-900 rounded-lg shadow-md p-4 flex flex-col h-full overflow-hidden">
+                    <div className="grid grid-cols-12 gap-4 h-full">
+                        <div className="col-span-12 md:col-span-4 bg-white dark:bg-slate-900 rounded-lg shadow-md p-4 flex flex-col h-full overflow-hidden">
                            {activeTab === 'group' && (
                                 <>
                                     <div className="flex justify-between items-center mb-2 flex-shrink-0">
@@ -459,7 +547,7 @@ const Messaging: FC<MessagingProps> = (props) => {
                                 </>
                            )}
                         </div>
-                        <div className="col-span-8 h-full">
+                        <div className="col-span-12 md:col-span-8 h-full hidden md:block">
                             {selectedConversationId && selectedDetails ? (
                                 <ChatWindow 
                                     conversationId={selectedConversationId}
@@ -469,6 +557,8 @@ const Messaging: FC<MessagingProps> = (props) => {
                                     allUsers={allUsersForChat}
                                     currentUser={user!}
                                     onSendMessage={handleSendMessage}
+                                    onDeleteMessage={onDeleteMessage}
+                                    onBulkDeleteMessages={onBulkDeleteMessages}
                                 />
                             ) : (
                                 <div className="bg-white dark:bg-slate-900 rounded-lg shadow-md flex flex-col items-center justify-center h-full text-slate-500 p-8 text-center">
@@ -478,6 +568,30 @@ const Messaging: FC<MessagingProps> = (props) => {
                                 </div>
                             )}
                         </div>
+                        {/* Mobile overlay for chat window */}
+                        {selectedConversationId && selectedDetails && (
+                            <div className="md:hidden fixed inset-0 z-50 bg-white dark:bg-blue-night-950">
+                                 <div className="flex flex-col h-full">
+                                    <div className="flex items-center p-2 border-b dark:border-gray-700">
+                                        <button onClick={() => setSelectedConversationId(null)} className="p-2 mr-2"><X size={24}/></button>
+                                        <span className="font-bold">{selectedDetails.title}</span>
+                                    </div>
+                                    <div className="flex-grow overflow-hidden">
+                                        <ChatWindow 
+                                            conversationId={selectedConversationId}
+                                            conversationName={selectedDetails.title}
+                                            conversationAvatar={selectedDetails.avatar}
+                                            chatMessages={chatMessages}
+                                            allUsers={allUsersForChat}
+                                            currentUser={user!}
+                                            onSendMessage={handleSendMessage}
+                                            onDeleteMessage={onDeleteMessage}
+                                            onBulkDeleteMessages={onBulkDeleteMessages}
+                                        />
+                                    </div>
+                                 </div>
+                            </div>
+                        )}
                     </div>
                 )}
 

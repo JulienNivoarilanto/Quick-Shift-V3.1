@@ -60,9 +60,9 @@ interface DataHandlerContextType {
     handleDeleteSpecialDayType: (id: string) => Promise<void>;
     handleSaveSpecialDay: (specialDay: SpecialDay) => Promise<void>;
     handleDeleteSpecialDay: (specialDayId: string) => Promise<void>;
-    handleValidateRequest: (messageId: string) => Promise<void>;
-    handleRefuseRequest: (messageId: string, reason: string) => Promise<void>;
-    handleFollowUpComplaint: (messageId: string) => Promise<void>;
+    handleValidateRequest: (messageId: string, processorName: string) => Promise<void>;
+    handleRefuseRequest: (messageId: string, reason: string, processorName: string) => Promise<void>;
+    handleFollowUpComplaint: (messageId: string, processorName: string) => Promise<void>;
     handleSaveEmployeeAvailability: (employeeId: string, availability: WeeklyAvailability) => Promise<void>;
     handleImportEmployees: (importedData: Array<Omit<Employee, 'id' | 'avatarUrl' | 'companyId'>>) => Promise<void>;
     handleBulkAddShifts: (newShifts: Array<Omit<Shift, 'id' | 'companyId'>>) => Promise<void>;
@@ -89,6 +89,7 @@ interface DataHandlerContextType {
     handleDeleteMessageGroup: (groupId: string) => Promise<void>;
     handleSendChatMessage: (messageData: Omit<ChatMessage, 'id' | 'companyId' | 'timestamp' | 'readBy' | 'senderName' | 'senderAvatarUrl'>) => Promise<void>;
     handleDeleteChatMessage: (messageId: string) => Promise<void>;
+    handleBulkDeleteChatMessages: (messageIds: string[]) => Promise<void>;
 }
 
 interface DataContextType extends DataState, DataHandlerContextType {}
@@ -312,19 +313,19 @@ export const DataProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     const handleSaveSpecialDay = (specialDay: SpecialDay) => handleSaveItem('specialDays', specialDay, !state.specialDays.some(sd => sd.id === specialDay.id));
     const handleDeleteSpecialDay = (specialDayId: string) => handleDeleteItem('specialDays', specialDayId);
 
-    const handleValidateRequest = async (messageId: string) => {
+    const handleValidateRequest = async (messageId: string, processorName: string) => {
         const message = state.inboxMessages.find(m => m.id === messageId);
         if (!message || !message.startDate || !message.endDate || !message.absenceTypeId) return;
         
         const newAbsence: Omit<Absence, 'id'> = { employeeId: message.employeeId, absenceTypeId: message.absenceTypeId, startDate: message.startDate, endDate: message.endDate, companyId: user!.companyId };
         await api.apiCreateItem('absences', newAbsence);
         
-        const updatedMessage = { ...message, status: 'validated' as const };
+        const updatedMessage = { ...message, status: 'validated' as const, processedBy: processorName };
         await api.apiUpdateItem('inboxMessages', messageId, updatedMessage);
     };
     
-    const handleRefuseRequest = async (messageId: string, reason: string) => api.apiUpdateItem<InboxMessage>('inboxMessages', messageId, { status: 'refused' as const, refusalReason: reason });
-    const handleFollowUpComplaint = (messageId: string) => api.apiUpdateItem<InboxMessage>('inboxMessages', messageId, { status: 'followed-up' as const });
+    const handleRefuseRequest = async (messageId: string, reason: string, processorName: string) => api.apiUpdateItem<InboxMessage>('inboxMessages', messageId, { status: 'refused' as const, refusalReason: reason, processedBy: processorName });
+    const handleFollowUpComplaint = (messageId: string, processorName: string) => api.apiUpdateItem<InboxMessage>('inboxMessages', messageId, { status: 'followed-up' as const, processedBy: processorName });
 
     const handleSaveEmployeeAvailability = (employeeId: string, availability: WeeklyAvailability) => handleSaveItem('employeeAvailabilities', { id: employeeId, employeeId, availability, companyId: user!.companyId }, !state.employeeAvailabilities.some(ea => ea.id === employeeId));
 
@@ -445,6 +446,7 @@ export const DataProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         await api.apiCreateItem('chatMessages', fullMessageData);
     };
     const handleDeleteChatMessage = (messageId: string) => handleDeleteItem('chatMessages', messageId);
+    const handleBulkDeleteChatMessages = (messageIds: string[]) => api.apiBulkDeleteItems('chatMessages', messageIds);
 
     const handleMarkConversationAsRead = async (conversationId: string) => {
         if (!user) return;
@@ -482,7 +484,7 @@ export const DataProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         handleMarkConversationAsRead,
         // FIX: Add messaging handlers to context value
         handleAddMessageGroup, handleUpdateMessageGroup, handleDeleteMessageGroup,
-        handleSendChatMessage, handleDeleteChatMessage,
+        handleSendChatMessage, handleDeleteChatMessage, handleBulkDeleteChatMessages,
     };
     
     return (

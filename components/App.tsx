@@ -47,6 +47,7 @@ export default function App() {
     handleAddMessageGroup, handleUpdateMessageGroup, handleDeleteMessageGroup,
     // FIX: Add handleMarkConversationAsRead to useData destructuring
     handleSendChatMessage, handleDeleteChatMessage, handleMarkConversationAsRead,
+    handleBulkDeleteChatMessages,
     isLoading: isDataLoading
   } = useData();
 
@@ -114,6 +115,20 @@ export default function App() {
     setIsCsvImportOpen(false);
   };
 
+  // Wrapper handlers to inject current user name
+  const onValidateRequestWrapper = (messageId: string) => {
+      if (user) handleValidateRequest(messageId, user.name);
+  };
+  
+  const onRefuseRequestWrapper = (messageId: string, reason: string) => {
+      if (user) handleRefuseRequest(messageId, reason, user.name);
+  };
+
+  const onFollowUpComplaintWrapper = (messageId: string) => {
+      if (user) handleFollowUpComplaint(messageId, user.name);
+  };
+
+
   if (isAuthLoading) {
     return <LoadingSpinner />;
   }
@@ -175,15 +190,16 @@ export default function App() {
               teams={teams}
               users={users}
               absenceTypes={absenceTypes}
-              onValidateRequest={handleValidateRequest}
-              onRefuseRequest={handleRefuseRequest}
-              onFollowUpComplaint={handleFollowUpComplaint}
+              onValidateRequest={onValidateRequestWrapper}
+              onRefuseRequest={onRefuseRequestWrapper}
+              onFollowUpComplaint={onFollowUpComplaintWrapper}
               onAddGroup={handleAddMessageGroup}
               onUpdateGroup={handleUpdateMessageGroup}
               onDeleteGroup={handleDeleteMessageGroup}
               onSendMessage={handleSendChatMessage}
               onDeleteMessage={handleDeleteChatMessage}
               onMarkConversationAsRead={handleMarkConversationAsRead}
+              onBulkDeleteMessages={handleBulkDeleteChatMessages}
             />
           : <div className="text-center p-8 bg-white dark:bg-blue-night-900 rounded-lg shadow-md max-w-lg mx-auto">
                 <MessageSquare size={48} className="mx-auto text-blue-500 dark:text-blue-night-400 mb-4" />
@@ -259,7 +275,7 @@ export default function App() {
         <div className="flex-1 flex flex-col overflow-hidden">
           <Header 
             employees={employees} absenceTypes={absenceTypes} inboxMessages={inboxMessages}
-            onValidateRequest={handleValidateRequest} onRefuseRequest={handleRefuseRequest} onFollowUpComplaint={handleFollowUpComplaint}
+            onValidateRequest={onValidateRequestWrapper} onRefuseRequest={onRefuseRequestWrapper} onFollowUpComplaint={onFollowUpComplaintWrapper}
           />
           <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-blue-night-950 p-6">
             {renderView()}
