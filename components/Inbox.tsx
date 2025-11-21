@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Mail, Inbox as InboxIcon } from 'lucide-react';
+import { Mail, Inbox as InboxIcon, Clock, CheckCircle } from 'lucide-react';
 import { InboxMessage, Employee, AbsenceType } from '../types';
 import MessageItem from './MessageItem';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -17,6 +17,7 @@ const Inbox: React.FC<InboxProps> = (props) => {
     const { messages, employees, absenceTypes, onValidateRequest, onRefuseRequest, onFollowUpComplaint } = props;
     const { t } = useLanguage();
     const [isOpen, setIsOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const pendingMessagesCount = useMemo(() => {
@@ -26,6 +27,14 @@ const Inbox: React.FC<InboxProps> = (props) => {
     const sortedMessages = useMemo(() => {
         return [...messages].sort((a, b) => b.date.getTime() - a.date.getTime());
     }, [messages]);
+
+    const filteredMessages = useMemo(() => {
+        if (activeTab === 'pending') {
+            return sortedMessages.filter(m => m.status === 'pending');
+        } else {
+            return sortedMessages.filter(m => m.status !== 'pending');
+        }
+    }, [sortedMessages, activeTab]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -53,13 +62,29 @@ const Inbox: React.FC<InboxProps> = (props) => {
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white dark:bg-blue-night-900 border border-gray-200 dark:border-blue-night-800 rounded-lg shadow-xl z-20">
-                    <div className="p-3 border-b border-gray-200 dark:border-blue-night-800">
-                        <h3 className="font-semibold text-gray-800 dark:text-white">{t('header.inbox')}</h3>
+                <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white dark:bg-blue-night-900 border border-gray-200 dark:border-blue-night-800 rounded-lg shadow-xl z-20 overflow-hidden">
+                    <div className="p-3 border-b border-gray-200 dark:border-blue-night-800 bg-gray-50 dark:bg-blue-night-950">
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold text-gray-800 dark:text-white">{t('header.inbox')}</h3>
+                        </div>
+                        <div className="flex p-1 bg-gray-200 dark:bg-blue-night-800 rounded-lg">
+                            <button
+                                onClick={() => setActiveTab('pending')}
+                                className={`flex-1 py-1 text-xs font-semibold rounded-md transition-colors ${activeTab === 'pending' ? 'bg-white dark:bg-blue-night-900 text-blue-600 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-blue-night-700'}`}
+                            >
+                                {t('inbox.statusPending')} {pendingMessagesCount > 0 && `(${pendingMessagesCount})`}
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('history')}
+                                className={`flex-1 py-1 text-xs font-semibold rounded-md transition-colors ${activeTab === 'history' ? 'bg-white dark:bg-blue-night-900 text-blue-600 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-blue-night-700'}`}
+                            >
+                                {t('history.title')}
+                            </button>
+                        </div>
                     </div>
                     <div className="max-h-96 overflow-y-auto">
-                        {sortedMessages.length > 0 ? (
-                            sortedMessages.map(message => {
+                        {filteredMessages.length > 0 ? (
+                            filteredMessages.map(message => {
                                 const employee = employees.find(e => e.id === message.employeeId);
                                 const absenceType = message.absenceTypeId ? absenceTypes.find(at => at.id === message.absenceTypeId) : undefined;
                                 if (!employee) return null;
@@ -77,10 +102,20 @@ const Inbox: React.FC<InboxProps> = (props) => {
                                 );
                             })
                         ) : (
-                            <div className="flex flex-col items-center justify-center p-6 text-center text-gray-500 dark:text-gray-400">
-                                <InboxIcon size={40} className="mb-2"/>
-                                <p className="text-sm font-semibold">{t('inbox.emptyTitle')}</p>
-                                <p className="text-xs">{t('inbox.emptySubtitle')}</p>
+                            <div className="flex flex-col items-center justify-center p-8 text-center text-gray-500 dark:text-gray-400">
+                                {activeTab === 'pending' ? (
+                                    <>
+                                        <CheckCircle size={40} className="mb-2 text-green-500 opacity-50"/>
+                                        <p className="text-sm font-semibold">{t('inbox.emptyTitle')}</p>
+                                        <p className="text-xs">{t('inbox.emptySubtitle')}</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Clock size={40} className="mb-2 opacity-50"/>
+                                        <p className="text-sm font-semibold">No history</p>
+                                        <p className="text-xs">Processed requests will appear here.</p>
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>

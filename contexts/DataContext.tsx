@@ -21,7 +21,6 @@ interface CompanyDataContextType {
     documentTypes: DocumentType[];
     meetings: Meeting[];
     users: User[];
-    // FIX: Add properties for messaging features
     messageGroups: MessageGroup[];
     chatMessages: ChatMessage[];
 }
@@ -83,7 +82,6 @@ interface DataHandlerContextType {
     handleUpdateTeam: (team: Team) => Promise<void>;
     handleDeleteTeam: (teamId: string) => Promise<void>;
     handleMarkConversationAsRead: (conversationId: string) => Promise<void>;
-    // FIX: Add handlers for messaging features
     handleAddMessageGroup: (groupData: Omit<MessageGroup, 'id' | 'companyId' | 'createdAt' | 'createdBy'>) => Promise<void>;
     handleUpdateMessageGroup: (group: MessageGroup) => Promise<void>;
     handleDeleteMessageGroup: (groupId: string) => Promise<void>;
@@ -107,7 +105,6 @@ const initialState: DataState = {
     employees: [], shifts: [], roles: [], locations: [], departments: [], teams: [], absences: [],
     absenceTypes: [], specialDays: [], specialDayTypes: [], inboxMessages: [], employeeAvailabilities: [],
     employeeDocuments: [], documentTypes: [], meetings: [], users: [],
-    // FIX: Add messageGroups and chatMessages to the initial state
     messageGroups: [], chatMessages: [],
     isLoading: true, // Start in loading state
     error: null,
@@ -153,7 +150,6 @@ export const DataProvider: React.FC<{children: ReactNode}> = ({ children }) => {
                     'absenceTypes', 'specialDayTypes', 'employeeAvailabilities',
                     'documentTypes', 'users', 'shifts', 'absences', 'specialDays', 
                     'inboxMessages', 'employeeDocuments', 'meetings', 'teams',
-                    // FIX: Add messageGroups and chatMessages to the collections array to fetch
                     'messageGroups', 'chatMessages'
                 ];
                 
@@ -320,12 +316,19 @@ export const DataProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         const newAbsence: Omit<Absence, 'id'> = { employeeId: message.employeeId, absenceTypeId: message.absenceTypeId, startDate: message.startDate, endDate: message.endDate, companyId: user!.companyId };
         await api.apiCreateItem('absences', newAbsence);
         
-        const updatedMessage = { ...message, status: 'validated' as const, processedBy: processorName };
-        await api.apiUpdateItem('inboxMessages', messageId, updatedMessage);
+        // Update status - pass only changed fields
+        await api.apiUpdateItem<InboxMessage>('inboxMessages', messageId, { status: 'validated', processedBy: processorName });
     };
     
-    const handleRefuseRequest = async (messageId: string, reason: string, processorName: string) => api.apiUpdateItem<InboxMessage>('inboxMessages', messageId, { status: 'refused' as const, refusalReason: reason, processedBy: processorName });
-    const handleFollowUpComplaint = (messageId: string, processorName: string) => api.apiUpdateItem<InboxMessage>('inboxMessages', messageId, { status: 'followed-up' as const, processedBy: processorName });
+    const handleRefuseRequest = async (messageId: string, reason: string, processorName: string) => {
+        // Update status - pass only changed fields
+        await api.apiUpdateItem<InboxMessage>('inboxMessages', messageId, { status: 'refused', refusalReason: reason, processedBy: processorName });
+    }
+
+    const handleFollowUpComplaint = async (messageId: string, processorName: string) => {
+        // Update status - pass only changed fields
+        await api.apiUpdateItem<InboxMessage>('inboxMessages', messageId, { status: 'followed-up', processedBy: processorName });
+    }
 
     const handleSaveEmployeeAvailability = (employeeId: string, availability: WeeklyAvailability) => handleSaveItem('employeeAvailabilities', { id: employeeId, employeeId, availability, companyId: user!.companyId }, !state.employeeAvailabilities.some(ea => ea.id === employeeId));
 
@@ -421,7 +424,6 @@ export const DataProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     const handleUpdateUser = (userToUpdate: User) => handleSaveItem('users', userToUpdate, false);
     const handleDeleteUser = (userId: string) => handleDeleteItem('users', userId);
     
-    // FIX: Implement messaging handlers
     const handleAddMessageGroup = async (groupData: Omit<MessageGroup, 'id' | 'companyId' | 'createdAt' | 'createdBy'>) => {
         if (!user) return;
         await api.apiCreateItem('messageGroups', {
@@ -482,7 +484,6 @@ export const DataProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         handleCreateAdditionalUser, handleUpdateUser, handleDeleteUser,
         handleAddTeam, handleUpdateTeam, handleDeleteTeam,
         handleMarkConversationAsRead,
-        // FIX: Add messaging handlers to context value
         handleAddMessageGroup, handleUpdateMessageGroup, handleDeleteMessageGroup,
         handleSendChatMessage, handleDeleteChatMessage, handleBulkDeleteChatMessages,
     };

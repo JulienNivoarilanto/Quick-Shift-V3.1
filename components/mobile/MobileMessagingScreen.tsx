@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, FC, useEffect } from 'react';
 import { useMobileData } from '../../contexts/MobileDataContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { Loader2, Send, Users, User, MessageSquare as MessageIcon, ArrowLeft } from 'lucide-react';
+import { Loader2, Send, Users, User, MessageSquare as MessageIcon, ArrowLeft, History, Plus } from 'lucide-react';
 import Modal from '../Modal';
 import { AbsenceType, InboxMessage, MessageGroup, ChatMessage, Employee, User as WebUser } from '../../types';
 import { useMobileAuth } from '../../contexts/MobileAuthContext';
@@ -27,6 +27,35 @@ const timeAgo = (date: Date): string => {
     interval = seconds / 60;
     if (interval > 1) return Math.floor(interval) + "m ago";
     return Math.floor(seconds) + "s ago";
+};
+
+const StatusBadge: FC<{ status: InboxMessage['status'] }> = ({ status }) => {
+    const { t } = useLanguage();
+    const styles = {
+        validated: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
+        refused: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
+        'followed-up': 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+        pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
+    };
+    return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${styles[status]}`}>{t(`inbox.status${status.charAt(0).toUpperCase() + status.slice(1).replace('-','')}`)}</span>;
+};
+
+const RequestHistoryItem: FC<{ message: InboxMessage }> = ({ message }) => {
+    return (
+        <div className="p-3 bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-100 dark:border-slate-800">
+            <div className="flex justify-between items-start mb-1">
+                <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">{message.subject}</span>
+                <span className="text-xs text-slate-500">{new Date(message.date).toLocaleDateString()}</span>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mb-2 line-clamp-2">{message.body}</p>
+            <div className="flex justify-between items-center">
+                <StatusBadge status={message.status} />
+                {message.status === 'refused' && message.refusalReason && (
+                    <span className="text-xs text-red-500 italic ml-2 truncate max-w-[150px]">{message.refusalReason}</span>
+                )}
+            </div>
+        </div>
+    );
 };
 
 const SegmentedControl: FC<{
@@ -127,6 +156,10 @@ const MobileMessagingScreen: React.FC = () => {
     const { employee } = useMobileAuth();
     const { users, inboxMessages, absenceTypes, submitRequest, messageGroups, chatMessages, isLoading: isDataLoading, sendChatMessage, markConversationAsRead } = useMobileData();
     const [activeTab, setActiveTab] = useState<'absence' | 'complaint' | 'group' | 'direct'>('group');
+    
+    // Sub-states for viewing history vs creating new request
+    const [viewingAbsenceHistory, setViewingAbsenceHistory] = useState(false);
+    const [viewingComplaintHistory, setViewingComplaintHistory] = useState(false);
 
     const [absenceData, setAbsenceData] = useState({
         absenceTypeId: absenceTypes[0]?.id || '',
@@ -255,6 +288,7 @@ const MobileMessagingScreen: React.FC = () => {
             if (success) {
                 setModalInfo({ isOpen: true, title: t('mobile.requestSuccessTitle'), body: t('mobile.requestSuccessBody') });
                 setAbsenceData({ absenceTypeId: absenceTypes[0]?.id || '', startDate: toInputDateString(new Date()), endDate: toInputDateString(new Date()), body: '' });
+                setViewingAbsenceHistory(true); // Switch to history to show the new request
             } else {
                  setModalInfo({ isOpen: true, title: t('mobile.errorTitle'), body: t('mobile.errorBody') });
             }
@@ -274,6 +308,7 @@ const MobileMessagingScreen: React.FC = () => {
             if (success) {
                 setModalInfo({ isOpen: true, title: t('mobile.requestSuccessTitle'), body: t('mobile.requestSuccessBody') });
                 setComplaintData({ body: '' });
+                setViewingComplaintHistory(true); // Switch to history
             } else {
                 setModalInfo({ isOpen: true, title: t('mobile.errorTitle'), body: t('mobile.errorBody') });
             }
@@ -326,21 +361,67 @@ const MobileMessagingScreen: React.FC = () => {
             
             <div className="px-4 md:px-6 pb-4">
                 {activeTab === 'absence' && (
-                     <form onSubmit={handleAbsenceSubmit} className="space-y-4">
-                        <div><label htmlFor="absenceTypeId" className={labelStyle}>{t('modals.absenceTypeLabel')}</label><select id="absenceTypeId" value={absenceData.absenceTypeId} onChange={e => setAbsenceData({...absenceData, absenceTypeId: e.target.value})} required className={inputStyle}>{absenceTypes.map(at => <option key={at.id} value={at.id}>{at.name}</option>)}</select></div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div><label htmlFor="startDate" className={labelStyle}>{t('mobile.startDate')}</label><input id="startDate" type="date" value={absenceData.startDate} onChange={e => setAbsenceData({...absenceData, startDate: e.target.value})} required className={inputStyle} /></div>
-                            <div><label htmlFor="endDate" className={labelStyle}>{t('mobile.endDate')}</label><input id="endDate" type="date" value={absenceData.endDate} min={absenceData.startDate} onChange={e => setAbsenceData({...absenceData, endDate: e.target.value})} required className={inputStyle} /></div>
+                    <>
+                        <div className="flex justify-end mb-4">
+                            <button 
+                                onClick={() => setViewingAbsenceHistory(!viewingAbsenceHistory)}
+                                className="text-sm font-semibold text-blue-600 dark:text-blue-400 flex items-center bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-full"
+                            >
+                                {viewingAbsenceHistory ? <><Plus size={16} className="mr-1"/> New Request</> : <><History size={16} className="mr-1"/> View History</>}
+                            </button>
                         </div>
-                        <div><label htmlFor="body" className={labelStyle}>{t('mobile.message')}</label><textarea id="body" value={absenceData.body} onChange={e => setAbsenceData({...absenceData, body: e.target.value})} rows={3} placeholder={t('mobile.messagePlaceholder')} className={inputStyle}></textarea></div>
-                        <button type="submit" disabled={isSubmitting} className={buttonStyle}>{isSubmitting ? <Loader2 className="animate-spin" /> : t('mobile.submitRequest')}</button>
-                    </form>
+                        
+                        {viewingAbsenceHistory ? (
+                            <div className="space-y-3">
+                                {inboxMessages.filter(m => m.type === 'absence-request').length > 0 ? (
+                                    inboxMessages.filter(m => m.type === 'absence-request').map(msg => (
+                                        <RequestHistoryItem key={msg.id} message={msg} />
+                                    ))
+                                ) : (
+                                    <p className="text-center py-8 text-slate-500 dark:text-slate-400">No absence request history.</p>
+                                )}
+                            </div>
+                        ) : (
+                            <form onSubmit={handleAbsenceSubmit} className="space-y-4">
+                                <div><label htmlFor="absenceTypeId" className={labelStyle}>{t('modals.absenceTypeLabel')}</label><select id="absenceTypeId" value={absenceData.absenceTypeId} onChange={e => setAbsenceData({...absenceData, absenceTypeId: e.target.value})} required className={inputStyle}>{absenceTypes.map(at => <option key={at.id} value={at.id}>{at.name}</option>)}</select></div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div><label htmlFor="startDate" className={labelStyle}>{t('mobile.startDate')}</label><input id="startDate" type="date" value={absenceData.startDate} onChange={e => setAbsenceData({...absenceData, startDate: e.target.value})} required className={inputStyle} /></div>
+                                    <div><label htmlFor="endDate" className={labelStyle}>{t('mobile.endDate')}</label><input id="endDate" type="date" value={absenceData.endDate} min={absenceData.startDate} onChange={e => setAbsenceData({...absenceData, endDate: e.target.value})} required className={inputStyle} /></div>
+                                </div>
+                                <div><label htmlFor="body" className={labelStyle}>{t('mobile.message')}</label><textarea id="body" value={absenceData.body} onChange={e => setAbsenceData({...absenceData, body: e.target.value})} rows={3} placeholder={t('mobile.messagePlaceholder')} className={inputStyle}></textarea></div>
+                                <button type="submit" disabled={isSubmitting} className={buttonStyle}>{isSubmitting ? <Loader2 className="animate-spin" /> : t('mobile.submitRequest')}</button>
+                            </form>
+                        )}
+                    </>
                 )}
                  {activeTab === 'complaint' && (
-                    <form onSubmit={handleComplaintSubmit} className="space-y-4">
-                        <div><label htmlFor="complaint-body" className={labelStyle}>{t('mobile.complaint')}</label><textarea id="complaint-body" value={complaintData.body} onChange={e => setComplaintData({ body: e.target.value })} required rows={5} placeholder={t('mobile.complaintPlaceholder')} className={inputStyle}></textarea></div>
-                        <button type="submit" disabled={isSubmitting} className={buttonStyle}>{isSubmitting ? <Loader2 className="animate-spin" /> : t('mobile.submitComplaint')}</button>
-                    </form>
+                    <>
+                        <div className="flex justify-end mb-4">
+                            <button 
+                                onClick={() => setViewingComplaintHistory(!viewingComplaintHistory)}
+                                className="text-sm font-semibold text-blue-600 dark:text-blue-400 flex items-center bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-full"
+                            >
+                                {viewingComplaintHistory ? <><Plus size={16} className="mr-1"/> New Complaint</> : <><History size={16} className="mr-1"/> View History</>}
+                            </button>
+                        </div>
+
+                        {viewingComplaintHistory ? (
+                             <div className="space-y-3">
+                                {inboxMessages.filter(m => m.type === 'complaint').length > 0 ? (
+                                    inboxMessages.filter(m => m.type === 'complaint').map(msg => (
+                                        <RequestHistoryItem key={msg.id} message={msg} />
+                                    ))
+                                ) : (
+                                    <p className="text-center py-8 text-slate-500 dark:text-slate-400">No complaint history.</p>
+                                )}
+                            </div>
+                        ) : (
+                            <form onSubmit={handleComplaintSubmit} className="space-y-4">
+                                <div><label htmlFor="complaint-body" className={labelStyle}>{t('mobile.complaint')}</label><textarea id="complaint-body" value={complaintData.body} onChange={e => setComplaintData({ body: e.target.value })} required rows={5} placeholder={t('mobile.complaintPlaceholder')} className={inputStyle}></textarea></div>
+                                <button type="submit" disabled={isSubmitting} className={buttonStyle}>{isSubmitting ? <Loader2 className="animate-spin" /> : t('mobile.submitComplaint')}</button>
+                            </form>
+                        )}
+                    </>
                  )}
                  {activeTab === 'group' && (
                      <div className="space-y-2">
