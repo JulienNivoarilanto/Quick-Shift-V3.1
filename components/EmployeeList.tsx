@@ -8,6 +8,7 @@ import MultiSelectDropdown from './MultiSelectDropdown';
 import FeatureTour, { TourStep } from './FeatureTour';
 import Modal from './Modal';
 import EmployeeExportModal from './EmployeeExportModal';
+import PasswordConfirmationModal from './PasswordConfirmationModal';
 
 const ROLE_COLORS: { [key: string]: { border: string; bg: string; text: string } } = {
     'Manager': { border: 'border-red-500', bg: 'bg-red-100 dark:bg-red-900/50', text: 'text-red-800 dark:text-red-300' },
@@ -324,7 +325,7 @@ const TeamManagement: React.FC<Pick<EmployeeListProps, 'teams' | 'employees' | '
         });
     }, [teams, teamSearchTerm, locations, departments]);
 
-    const handleSave = (teamData: Omit<Team, 'id' | 'companyId'> | Team) => {
+    const handleSave = (teamData: Omit<Team, 'id' | 'companyId' | 'team'> | Team) => {
         if ('id' in teamData) {
             onUpdateTeam(teamData);
         } else {
@@ -480,22 +481,33 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees, roles, onAdd, on
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [isBulkRoleModalOpen, setIsBulkRoleModalOpen] = useState(false);
     const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+    
+    // Password confirmation for bulk delete
+    const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
     const isSelectionMode = selectedEmployeeIds.length > 0;
     const atEmployeeLimit = employees.length >= permissions.employeeLimit;
 
     const handleDeleteWithConfirm = (employeeId: string) => {
+        // This function is passed to EmployeeCard but actually we now use the editor to delete securely
+        // Or we can trigger a secure delete here if needed. 
+        // For single deletion, the EmployeeEditor now handles it securely.
+        // But for quick access from list, we should open the editor or a secure modal.
+        // Let's just open the editor for simplicity and security consistency.
         const employee = employees.find(e => e.id === employeeId);
-        if(employee && window.confirm(t('modals.confirmDelete', { name: employee.name }))){
-            onDelete(employeeId);
+        if(employee) {
+            onEdit(employee);
         }
     };
 
-    const handleBulkDelete = () => {
-        if (window.confirm(t('employees.confirmBulkDelete', { count: selectedEmployeeIds.length }))) {
-            onBulkDelete(selectedEmployeeIds);
-            setSelectedEmployeeIds([]);
-        }
+    const initiateBulkDelete = () => {
+        setShowBulkDeleteConfirm(true);
+    };
+
+    const handleBulkDeleteConfirm = () => {
+        onBulkDelete(selectedEmployeeIds);
+        setSelectedEmployeeIds([]);
+        setShowBulkDeleteConfirm(false);
     };
 
     const handleBulkRoleAssign = (roleName: string) => {
@@ -572,6 +584,16 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees, roles, onAdd, on
                     employeeCount={selectedEmployeeIds.length}
                 />
             )}
+            
+            {showBulkDeleteConfirm && (
+                <PasswordConfirmationModal
+                    isOpen={true}
+                    onClose={() => setShowBulkDeleteConfirm(false)}
+                    onConfirm={handleBulkDeleteConfirm}
+                    title={t('employees.deleteSelected')}
+                    description={t('employees.confirmBulkDelete', { count: selectedEmployeeIds.length })}
+                />
+            )}
 
             <div className="flex justify-between items-start mb-6">
                 <div>
@@ -616,7 +638,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees, roles, onAdd, on
                                 <span className="font-semibold text-blue-800 dark:text-blue-200">{t('employees.selectedCount', { count: selectedEmployeeIds.length })}</span>
                                 <div className="flex items-center space-x-2">
                                     <button onClick={() => setIsBulkRoleModalOpen(true)} className="btn-secondary flex items-center text-sm"><UsersIcon size={16} className="mr-2"/> {t('employees.assignRole')}</button>
-                                    <button onClick={handleBulkDelete} className="btn-danger flex items-center text-sm"><Trash2 size={16} className="mr-2"/> {t('employees.deleteSelected')}</button>
+                                    <button onClick={initiateBulkDelete} className="btn-danger flex items-center text-sm"><Trash2 size={16} className="mr-2"/> {t('employees.deleteSelected')}</button>
                                     <button onClick={() => setSelectedEmployeeIds([])} className="p-2 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white"><X size={20}/></button>
                                 </div>
                             </div>

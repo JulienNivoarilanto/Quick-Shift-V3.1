@@ -23,7 +23,7 @@ const DocumentImportModal: React.FC<DocumentImportModalProps> = ({ onClose, onIm
 
     const REQUIRED_HEADERS = ['name', 'type'];
     const ALL_HEADERS = ['name', 'type', 'number', 'description', 'expirationdate', 'isvalid'];
-    const docTypeMap = new Map(documentTypes.map(dt => [dt.name.toLowerCase(), dt.id]));
+    const docTypeMap = new Map(documentTypes.map(dt => [dt.name.toLowerCase(), dt.id] as [string, string]));
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];

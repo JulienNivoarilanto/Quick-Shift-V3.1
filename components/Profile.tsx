@@ -8,6 +8,7 @@ import UserGuide from './UserGuide';
 import Modal from './Modal';
 import { apiCreateStripePortalSession } from '../services/api';
 import { useCurrency } from '../contexts/CurrencyContext';
+import PasswordConfirmationModal from './PasswordConfirmationModal';
 
 // #region Helper Components
 const resizeImage = (file: File, maxWidth: number): Promise<string> => {
@@ -282,52 +283,6 @@ const UserEditorModal: React.FC<UserEditorModalProps> = ({ userToEdit, onClose, 
         </Modal>
     );
 };
-// #endregion
-
-// #region Confirmation Modal
-interface PasswordConfirmationModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onConfirm: (password: string) => Promise<{ success: boolean }>;
-    title: string;
-    description: string;
-}
-
-const PasswordConfirmationModal: React.FC<PasswordConfirmationModalProps> = ({ isOpen, onClose, onConfirm, title, description }) => {
-    const { t } = useLanguage();
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const [isProcessing, setIsProcessing] = useState(false);
-
-    const handleConfirm = async () => {
-        setError('');
-        setIsProcessing(true);
-        const result = await onConfirm(password);
-        if (!result.success) {
-            setError(t('profile.userManagement.incorrectPassword'));
-        }
-        setIsProcessing(false);
-    };
-
-    const footer = <>
-        <button onClick={onClose} className="btn-secondary">{t('modals.cancel')}</button>
-        <button onClick={handleConfirm} disabled={isProcessing} className="btn-primary w-28 flex justify-center">{isProcessing ? <Loader2 className="animate-spin" /> : t('modals.confirm')}</button>
-    </>;
-    
-    return (
-        <Modal isOpen={isOpen} onClose={onClose} title={title} footer={footer}>
-            <div className="space-y-4">
-                <p className="text-sm text-slate-600 dark:text-slate-400">{description}</p>
-                {error && <Message message={{type: 'error', text: error}} />}
-                <div>
-                    <label className="label-style">{t('profile.userManagement.confirmPassword')}</label>
-                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoFocus className="input-style" />
-                </div>
-            </div>
-        </Modal>
-    );
-};
-
 // #endregion
 
 // #region Tab Content Components
@@ -676,23 +631,22 @@ interface ProfileProps {
 
 const Profile: React.FC<ProfileProps> = ({ allUsers, onCreateUser, onUpdateUser, onDeleteUser }) => {
     const { t } = useLanguage();
-    const { user, permissions, isCompanyOwner, reauthenticate } = useAuth();
+    const { user, permissions, isCompanyOwner } = useAuth();
     const [activeTab, setActiveTab] = useState('profile');
     const [editorModal, setEditorModal] = useState<{isOpen: boolean, user: User | null}>({isOpen: false, user: null});
+    
+    // Password confirmation state for User Management
     const [confirmState, setConfirmState] = useState<{isOpen: boolean; action: (() => void) | null}>({isOpen: false, action: null});
-
 
     const openConfirmModal = (action: () => void) => {
         setConfirmState({ isOpen: true, action });
     };
 
-    const handleConfirmAction = async (password: string) => {
-        const result = await reauthenticate(password);
-        if (result.success && confirmState.action) {
+    const handleConfirmAction = () => {
+        if (confirmState.action) {
             confirmState.action();
-            setConfirmState({ isOpen: false, action: null });
         }
-        return result;
+        setConfirmState({ isOpen: false, action: null });
     };
 
     const handleUpdateUserWithConfirm = (userToUpdate: User) => {
@@ -777,7 +731,7 @@ const Profile: React.FC<ProfileProps> = ({ allUsers, onCreateUser, onUpdateUser,
             )}
 
              <style>{`
-                .label-style { display: block; margin-bottom: 0.25rem; font-size: 0.75rem; line-height: 1rem; font-weight: 500; color: #64748b; }
+                .label-style { display: block; margin-bottom: 0.25rem; font-size: 0.75rem; line-height: 1.25rem; font-weight: 500; color: #64748b; }
                 .dark .label-style { color: #94a3b8; }
                 .input-style { display: block; width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; background-color: #ffffff; color: #1e293b; }
                 .dark .input-style { border-color: #475569; background-color: #1e293b; color: #f8fafc; }

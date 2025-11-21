@@ -1,13 +1,12 @@
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Employee, Role, EmployeeAvailability, WeeklyAvailability, ContractType } from '../types';
-import { Trash2, Upload, KeyRound, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Trash2, Upload, KeyRound, RefreshCw, AlertTriangle, Eye, Lock } from 'lucide-react';
 import Modal from './Modal';
 import Avatar from './Avatar';
 import { useLanguage } from '../contexts/LanguageContext';
 import AvailabilityEditor from './AvailabilityEditor';
 import { useAuth } from '../contexts/AuthContext';
+import PasswordConfirmationModal from './PasswordConfirmationModal';
 
 interface EmployeeEditorProps {
     employee: Employee | null;
@@ -92,6 +91,11 @@ const EmployeeEditor: React.FC<EmployeeEditorProps> = ({ employee, roles, onSave
     const [error, setError] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [activeTab, setActiveTab] = useState<'details' | 'availability'>('details');
+    
+    // Security states
+    const [isAccessCodeVisible, setIsAccessCodeVisible] = useState(false);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [pendingAction, setPendingAction] = useState<'reveal' | 'regenerate' | 'delete' | null>(null);
 
 
     useEffect(() => {
@@ -99,6 +103,8 @@ const EmployeeEditor: React.FC<EmployeeEditorProps> = ({ employee, roles, onSave
         // If it's a new employee for a Pro Plus user, generate an access code
         if (!employee && user?.plan === 'Pro Plus') {
             initialData.accessCode = generateAccessCode();
+            // Automatically visible for new employees
+            setIsAccessCodeVisible(true);
         }
         setFormData(initialData);
     }, [employee, roles, user]);
@@ -153,22 +159,47 @@ const EmployeeEditor: React.FC<EmployeeEditorProps> = ({ employee, roles, onSave
         onSave(finalEmployee, !employee);
     };
 
-    const handleDelete = () => {
-        if (employee && onDelete) {
-            onDelete(employee.id);
+    // Security Handlers
+    const initiateDelete = () => {
+        setPendingAction('delete');
+        setShowPasswordModal(true);
+    };
+
+    const initiateReveal = () => {
+        if (isAccessCodeVisible) {
+            setIsAccessCodeVisible(false);
+        } else {
+            setPendingAction('reveal');
+            setShowPasswordModal(true);
         }
     };
 
-    const handleRegenerate = () => {
-        const newCode = generateAccessCode();
-        setFormData(prev => ({ ...prev, accessCode: newCode }));
+    const initiateRegenerate = () => {
+        setPendingAction('regenerate');
+        setShowPasswordModal(true);
     };
-    
+
+    const handlePasswordConfirm = () => {
+        if (pendingAction === 'delete') {
+            if (employee && onDelete) {
+                onDelete(employee.id);
+            }
+        } else if (pendingAction === 'reveal') {
+            setIsAccessCodeVisible(true);
+        } else if (pendingAction === 'regenerate') {
+            const newCode = generateAccessCode();
+            setFormData(prev => ({ ...prev, accessCode: newCode }));
+            setIsAccessCodeVisible(true); // Ensure it's visible after regeneration
+        }
+        setPendingAction(null);
+        setShowPasswordModal(false);
+    };
+
     const modalFooter = (
         <div className="flex justify-between w-full items-center">
             <div>
                 {employee && onDelete && (
-                    <button type="button" onClick={handleDelete} className="btn-danger p-2">
+                    <button type="button" onClick={initiateDelete} className="btn-danger p-2">
                         <Trash2 size={20} />
                     </button>
                 )}
@@ -181,99 +212,140 @@ const EmployeeEditor: React.FC<EmployeeEditorProps> = ({ employee, roles, onSave
     );
     
     return (
-        <Modal 
-            isOpen={true} 
-            onClose={onClose} 
-            title={employee ? t('modals.editEmployee') : t('modals.addEmployee')} 
-            footer={modalFooter}
-            size="4xl"
-        >
-            <div className="flex flex-col">
-                <div className="flex flex-col items-center mb-6">
-                    <Avatar name={formData.name || '?'} src={formData.avatarUrl} className="w-28 h-28 rounded-full mb-2"/>
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden"/>
-                    <button onClick={handleAvatarClick} className="flex items-center text-sm text-blue-600 dark:text-blue-400 hover:underline">
-                        <Upload size={14} className="mr-1"/> {t('modals.uploadPhoto')}
-                    </button>
-                </div>
-                
-                <div className="border-b dark:border-slate-700 mb-4">
-                    <nav className="flex space-x-4">
-                        <button onClick={() => setActiveTab('details')} className={`py-2 px-1 text-sm font-medium border-b-2 ${activeTab === 'details' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>{t('modals.details')}</button>
-                        <button onClick={() => setActiveTab('availability')} className={`py-2 px-1 text-sm font-medium border-b-2 ${activeTab === 'availability' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>{t('modals.availability')}</button>
-                    </nav>
-                </div>
+        <>
+            <Modal 
+                isOpen={true} 
+                onClose={onClose} 
+                title={employee ? t('modals.editEmployee') : t('modals.addEmployee')} 
+                footer={modalFooter}
+                size="4xl"
+            >
+                <div className="flex flex-col">
+                    <div className="flex flex-col items-center mb-6">
+                        <Avatar name={formData.name || '?'} src={formData.avatarUrl} className="w-28 h-28 rounded-full mb-2"/>
+                        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden"/>
+                        <button onClick={handleAvatarClick} className="flex items-center text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                            <Upload size={14} className="mr-1"/> {t('modals.uploadPhoto')}
+                        </button>
+                    </div>
+                    
+                    <div className="border-b dark:border-slate-700 mb-4">
+                        <nav className="flex space-x-4">
+                            <button onClick={() => setActiveTab('details')} className={`py-2 px-1 text-sm font-medium border-b-2 ${activeTab === 'details' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>{t('modals.details')}</button>
+                            <button onClick={() => setActiveTab('availability')} className={`py-2 px-1 text-sm font-medium border-b-2 ${activeTab === 'availability' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>{t('modals.availability')}</button>
+                        </nav>
+                    </div>
 
-                {error && <p className="mb-4 text-red-600 dark:text-red-400 text-sm bg-red-100 dark:bg-red-900/30 p-3 rounded-lg flex items-center"><AlertTriangle size={16} className="mr-2"/>{error}</p>}
+                    {error && <p className="mb-4 text-red-600 dark:text-red-400 text-sm bg-red-100 dark:bg-red-900/30 p-3 rounded-lg flex items-center"><AlertTriangle size={16} className="mr-2"/>{error}</p>}
 
-                {activeTab === 'details' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 max-h-[55vh] overflow-y-auto pr-2">
-                        {/* LEFT COLUMN: Detail Information */}
-                        <div className="space-y-4">
-                            <div><label className="label-style">{t('modals.customIdLabel')}</label><input name="customId" value={formData.customId} onChange={handleChange} className="input-style"/></div>
-                            <div><label className="label-style">{t('modals.statusLabel')}</label><select name="status" value={formData.status} onChange={handleChange} className="input-style">{STATUSES.map(s => <option key={s} value={s}>{t(`status.${s}`)}</option>)}</select></div>
-                            <div><label className="label-style">{t('modals.hiringDateLabel')}</label><input name="hiringDate" type="date" value={formData.hiringDate} onChange={handleChange} className="input-style"/></div>
-                            <div>
-                                <label className="label-style">{t('modals.contractTypeLabel')}</label>
-                                <select name="contractType" value={formData.contractType} onChange={handleChange} className="input-style">
-                                    <option value="">-- {t('modals.none')} --</option>
-                                    {CONTRACT_TYPES.map(c => <option key={c} value={c}>{t(`contract.${c}`)}</option>)}
-                                </select>
-                            </div>
-                            <div><label className="label-style">{t('modals.addressLabel')}</label><input type="text" name="address" value={formData.address} onChange={handleChange} className="input-style"/></div>
-                            {user?.plan === 'Pro Plus' && (
-                                <div className="pt-2">
-                                    <label className="label-style">{t('modals.accessCodeLabel')}</label>
-                                    <div className="flex items-center space-x-2">
-                                        <input readOnly value={formData.accessCode || 'N/A'} className="input-style font-mono tracking-widest bg-slate-100 dark:bg-slate-800"/>
-                                        <button type="button" onClick={handleRegenerate} title={t('modals.regenerateCode')} className="p-2.5 rounded-md bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600">
-                                            <RefreshCw size={16}/>
-                                        </button>
-                                    </div>
+                    {activeTab === 'details' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 max-h-[55vh] overflow-y-auto pr-2">
+                            {/* LEFT COLUMN: Detail Information */}
+                            <div className="space-y-4">
+                                <div><label className="label-style">{t('modals.customIdLabel')}</label><input name="customId" value={formData.customId} onChange={handleChange} className="input-style"/></div>
+                                <div><label className="label-style">{t('modals.statusLabel')}</label><select name="status" value={formData.status} onChange={handleChange} className="input-style">{STATUSES.map(s => <option key={s} value={s}>{t(`status.${s}`)}</option>)}</select></div>
+                                <div><label className="label-style">{t('modals.hiringDateLabel')}</label><input name="hiringDate" type="date" value={formData.hiringDate} onChange={handleChange} className="input-style"/></div>
+                                <div>
+                                    <label className="label-style">{t('modals.contractTypeLabel')}</label>
+                                    <select name="contractType" value={formData.contractType} onChange={handleChange} className="input-style">
+                                        <option value="">-- {t('modals.none')} --</option>
+                                        {CONTRACT_TYPES.map(c => <option key={c} value={c}>{t(`contract.${c}`)}</option>)}
+                                    </select>
                                 </div>
+                                <div><label className="label-style">{t('modals.addressLabel')}</label><input type="text" name="address" value={formData.address} onChange={handleChange} className="input-style"/></div>
+                                {user?.plan === 'Pro Plus' && (
+                                    <div className="pt-2">
+                                        <label className="label-style">{t('modals.accessCodeLabel')}</label>
+                                        <div className="flex items-center space-x-2">
+                                            <div className="relative flex-grow">
+                                                <input 
+                                                    readOnly 
+                                                    type={isAccessCodeVisible ? "text" : "password"}
+                                                    value={formData.accessCode || '000000'} 
+                                                    className="input-style font-mono tracking-widest bg-slate-100 dark:bg-slate-800 text-center"
+                                                />
+                                            </div>
+                                            <button 
+                                                type="button" 
+                                                onClick={initiateReveal} 
+                                                title={isAccessCodeVisible ? "Hide Code" : "Show Code"} 
+                                                className="p-2.5 rounded-md bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600"
+                                            >
+                                                {isAccessCodeVisible ? <Eye size={16}/> : <Lock size={16}/>}
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={initiateRegenerate} 
+                                                title={t('modals.regenerateCode')} 
+                                                className="p-2.5 rounded-md bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600"
+                                                disabled={!isAccessCodeVisible} // Optional: disable regenerate until unlocked
+                                            >
+                                                <RefreshCw size={16}/>
+                                            </button>
+                                        </div>
+                                        {!isAccessCodeVisible && (
+                                            <p className="text-xs text-slate-500 mt-1 flex items-center">
+                                                <Lock size={12} className="mr-1"/>
+                                                Password required to view or edit.
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* RIGHT COLUMN: Basic Information */}
+                            <div className="space-y-4">
+                                <div><label className="label-style">{t('modals.nameLabel')}<span className="text-red-500 ml-1">*</span></label><input name="name" value={formData.name} onChange={handleChange} className="input-style"/></div>
+                                <div><label className="label-style">{t('modals.emailLabel')}<span className="text-red-500 ml-1">*</span></label><input name="email" type="email" value={formData.email} onChange={handleChange} className="input-style"/></div>
+                                <div><label className="label-style">{t('modals.birthDateLabel')}<span className="text-red-500 ml-1">*</span></label><input name="birthDate" type="date" value={formData.birthDate} onChange={handleChange} className="input-style"/></div>
+                                <div><label className="label-style">{t('modals.roleLabel')}<span className="text-red-500 ml-1">*</span></label><select name="role" value={formData.role} onChange={handleChange} className="input-style">{roles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}</select></div>
+                                <div><label className="label-style">{t('modals.phoneLabel')}</label><input name="phone" value={formData.phone} onChange={handleChange} className="input-style"/></div>
+                                <div><label className="label-style">{t('modals.genderLabel')}</label><select name="gender" value={formData.gender} onChange={handleChange} className="input-style">{GENDERS.map(g => <option key={g} value={g}>{t(`gender.${g.toLowerCase().replace(/ /g, '').replace(/[^a-zA-Z]/g, '')}`)}</option>)}</select></div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'availability' && (
+                        <div className="max-h-[60vh] overflow-y-auto pr-2">
+                            {employee ? (
+                                <AvailabilityEditor employeeId={employee.id} initialAvailability={employeeAvailability?.availability} onSave={onSaveAvailability}/>
+                            ) : (
+                                <p className="text-sm text-slate-500">{t('availability.saveFirst')}</p>
                             )}
                         </div>
+                    )}
+                </div>
+                <style>{`
+                    .label-style { display: block; margin-bottom: 0.375rem; font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; color: #475569; }
+                    .dark .label-style { color: #cbd5e1; }
+                    .input-style { display: block; width: 100%; padding: 0.625rem 0.75rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; background-color: #ffffff; color: #1e293b; }
+                    .dark .input-style { border-color: #475569; background-color: #1e293b; color: #f8fafc; }
+                    .input-style:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4); }
+                    .btn-primary { padding: 0.625rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; color: white; background-color: #2563eb; transition: background-color 0.2s; }
+                    .btn-primary:hover { background-color: #1d4ed8; }
+                    .btn-secondary { padding: 0.625rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; color: #334155; background-color: #e2e8f0; }
+                    .dark .btn-secondary { color: #e2e8f0; background-color: #334155; }
+                    .btn-secondary:hover { background-color: #cbd5e1; }
+                    .dark .btn-secondary:hover { background-color: #475569; }
+                    .btn-danger { padding: 0.625rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; color: #dc2626; background-color: #fee2e2; }
+                    .dark .btn-danger { color: #f87171; background-color: rgba(153, 27, 27, 0.4); }
+                    .btn-danger:hover { background-color: #fecaca; }
+                    .dark .btn-danger:hover { background-color: rgba(153, 27, 27, 0.6); }
+                `}</style>
+            </Modal>
 
-                        {/* RIGHT COLUMN: Basic Information */}
-                        <div className="space-y-4">
-                            <div><label className="label-style">{t('modals.nameLabel')}<span className="text-red-500 ml-1">*</span></label><input name="name" value={formData.name} onChange={handleChange} className="input-style"/></div>
-                            <div><label className="label-style">{t('modals.emailLabel')}<span className="text-red-500 ml-1">*</span></label><input name="email" type="email" value={formData.email} onChange={handleChange} className="input-style"/></div>
-                            <div><label className="label-style">{t('modals.birthDateLabel')}<span className="text-red-500 ml-1">*</span></label><input name="birthDate" type="date" value={formData.birthDate} onChange={handleChange} className="input-style"/></div>
-                            <div><label className="label-style">{t('modals.roleLabel')}<span className="text-red-500 ml-1">*</span></label><select name="role" value={formData.role} onChange={handleChange} className="input-style">{roles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}</select></div>
-                            <div><label className="label-style">{t('modals.phoneLabel')}</label><input name="phone" value={formData.phone} onChange={handleChange} className="input-style"/></div>
-                            <div><label className="label-style">{t('modals.genderLabel')}</label><select name="gender" value={formData.gender} onChange={handleChange} className="input-style">{GENDERS.map(g => <option key={g} value={g}>{t(`gender.${g.toLowerCase().replace(/ /g, '').replace(/[^a-zA-Z]/g, '')}`)}</option>)}</select></div>
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'availability' && (
-                    <div className="max-h-[60vh] overflow-y-auto pr-2">
-                        {employee ? (
-                            <AvailabilityEditor employeeId={employee.id} initialAvailability={employeeAvailability?.availability} onSave={onSaveAvailability}/>
-                        ) : (
-                            <p className="text-sm text-slate-500">{t('availability.saveFirst')}</p>
-                        )}
-                    </div>
-                )}
-            </div>
-             <style>{`
-                .label-style { display: block; margin-bottom: 0.375rem; font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; color: #475569; }
-                .dark .label-style { color: #cbd5e1; }
-                .input-style { display: block; width: 100%; padding: 0.625rem 0.75rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; background-color: #ffffff; color: #1e293b; }
-                .dark .input-style { border-color: #475569; background-color: #1e293b; color: #f8fafc; }
-                .input-style:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4); }
-                .btn-primary { padding: 0.625rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; color: white; background-color: #2563eb; transition: background-color 0.2s; }
-                .btn-primary:hover { background-color: #1d4ed8; }
-                .btn-secondary { padding: 0.625rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; color: #334155; background-color: #e2e8f0; }
-                .dark .btn-secondary { color: #e2e8f0; background-color: #334155; }
-                .btn-secondary:hover { background-color: #cbd5e1; }
-                .dark .btn-secondary:hover { background-color: #475569; }
-                .btn-danger { padding: 0.625rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; color: #dc2626; background-color: #fee2e2; }
-                .dark .btn-danger { color: #f87171; background-color: rgba(153, 27, 27, 0.4); }
-                .btn-danger:hover { background-color: #fecaca; }
-                .dark .btn-danger:hover { background-color: rgba(153, 27, 27, 0.6); }
-            `}</style>
-        </Modal>
+            {showPasswordModal && (
+                <PasswordConfirmationModal
+                    isOpen={true}
+                    onClose={() => { setShowPasswordModal(false); setPendingAction(null); }}
+                    onConfirm={handlePasswordConfirm}
+                    title={pendingAction === 'delete' ? t('modals.confirmDelete') : "Security Verification"}
+                    description={pendingAction === 'delete' 
+                        ? "Please enter your password to confirm deletion of this employee." 
+                        : "Please enter your password to view or regenerate the access code."}
+                />
+            )}
+        </>
     );
 };
 
