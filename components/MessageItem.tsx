@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { InboxMessage, Employee, AbsenceType } from '../types';
 import Avatar from './Avatar';
-import { Check, X, Send, ArrowRight } from 'lucide-react';
+import { Check, X, Send, ArrowRight, Trash2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import Modal from './Modal';
 
@@ -12,6 +12,7 @@ interface MessageItemProps {
     onValidate: (messageId: string) => void;
     onRefuse: (messageId: string, reason: string) => void;
     onFollowUp: (messageId: string) => void;
+    onDelete: (messageId: string) => void;
 }
 
 const timeAgo = (date: Date): string => {
@@ -41,7 +42,7 @@ const StatusBadge: React.FC<{ status: InboxMessage['status'] }> = ({ status }) =
     return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${styles[status]}`}>{t(`inbox.status${status.charAt(0).toUpperCase() + status.slice(1).replace('-','')}`)}</span>;
 }
 
-const MessageItem: React.FC<MessageItemProps> = ({ message, employee, absenceType, onValidate, onRefuse, onFollowUp }) => {
+const MessageItem: React.FC<MessageItemProps> = ({ message, employee, absenceType, onValidate, onRefuse, onFollowUp, onDelete }) => {
     const { t } = useLanguage();
     const [isRefusing, setIsRefusing] = useState(false);
     const [refusalReason, setRefusalReason] = useState('');
@@ -67,8 +68,14 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, employee, absenceTyp
         setShowValidationConfirm(false);
     };
 
+    const handleDelete = () => {
+        if (window.confirm(t('modals.confirmDeleteMultiple', { count: 1 }))) {
+            onDelete(message.id);
+        }
+    }
+
     return (
-        <div className="p-3 border-b border-gray-200 dark:border-blue-night-800 last:border-b-0 hover:bg-gray-50 dark:hover:bg-blue-night-800/50">
+        <div className="p-3 border-b border-gray-200 dark:border-blue-night-800 last:border-b-0 hover:bg-gray-50 dark:hover:bg-blue-night-800/50 group">
             <div className="flex items-start space-x-3">
                 <Avatar name={employee.name} src={employee.avatarUrl} className="w-8 h-8 rounded-full flex-shrink-0 mt-1" />
                 <div className="flex-grow">
@@ -77,7 +84,12 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, employee, absenceTyp
                             <p className="font-semibold text-sm text-gray-800 dark:text-gray-200">{employee.name}</p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">{message.subject}</p>
                         </div>
-                        <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">{timeAgo(message.date)}</span>
+                        <div className="flex items-center">
+                            <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0 mr-2">{timeAgo(message.date)}</span>
+                            <button onClick={handleDelete} className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" title={t('history.deleteSelected', { count: 1 })}>
+                                <Trash2 size={14} />
+                            </button>
+                        </div>
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{message.body}</p>
                     

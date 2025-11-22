@@ -11,10 +11,11 @@ interface InboxProps {
     onValidateRequest: (messageId: string) => void;
     onRefuseRequest: (messageId: string, reason: string) => void;
     onFollowUpComplaint: (messageId: string) => void;
+    onDeleteMessage: (messageId: string) => void;
 }
 
 const Inbox: React.FC<InboxProps> = (props) => {
-    const { messages, employees, absenceTypes, onValidateRequest, onRefuseRequest, onFollowUpComplaint } = props;
+    const { messages, employees, absenceTypes, onValidateRequest, onRefuseRequest, onFollowUpComplaint, onDeleteMessage } = props;
     const { t } = useLanguage();
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
@@ -98,6 +99,7 @@ const Inbox: React.FC<InboxProps> = (props) => {
                                         onValidate={onValidateRequest}
                                         onRefuse={onRefuseRequest}
                                         onFollowUp={onFollowUpComplaint}
+                                        onDelete={onDeleteMessage}
                                     />
                                 );
                             })

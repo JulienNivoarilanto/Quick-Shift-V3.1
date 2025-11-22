@@ -13,16 +13,17 @@ interface HeaderProps {
     onValidateRequest: (messageId: string) => void;
     onRefuseRequest: (messageId: string, reason: string) => void;
     onFollowUpComplaint: (messageId: string) => void;
+    onDeleteInboxMessage: (messageId: string) => void;
 }
 
 const Header: React.FC<Partial<HeaderProps>> = (props) => {
-  const { employees, absenceTypes, inboxMessages, onValidateRequest, onRefuseRequest, onFollowUpComplaint } = props;
+  const { employees, absenceTypes, inboxMessages, onValidateRequest, onRefuseRequest, onFollowUpComplaint, onDeleteInboxMessage } = props;
   const { user } = useAuth();
   return (
     <header className="h-20 items-center justify-between flex px-6 bg-white dark:bg-blue-night-950 border-b border-gray-200 dark:border-blue-night-900">
         <Clock />
         <div className="flex items-center space-x-4">
-            {user?.plan === 'Pro Plus' && inboxMessages && employees && absenceTypes && onValidateRequest && onRefuseRequest && onFollowUpComplaint && (
+            {user?.plan === 'Pro Plus' && inboxMessages && employees && absenceTypes && onValidateRequest && onRefuseRequest && onFollowUpComplaint && onDeleteInboxMessage && (
                 <Inbox 
                     messages={inboxMessages}
                     employees={employees}
@@ -30,6 +31,7 @@ const Header: React.FC<Partial<HeaderProps>> = (props) => {
                     onValidateRequest={onValidateRequest}
                     onRefuseRequest={onRefuseRequest}
                     onFollowUpComplaint={onFollowUpComplaint}
+                    onDeleteMessage={onDeleteInboxMessage}
                 />
             )}
            <LanguageSwitcher />

@@ -477,6 +477,7 @@ const Messaging: FC<MessagingProps> = (props) => {
                                             onValidate={onValidateRequest}
                                             onRefuse={onRefuseRequest}
                                             onFollowUp={onFollowUpComplaint}
+                                            onDelete={props.onDeleteMessage}
                                         />
                                     );
                                 })
