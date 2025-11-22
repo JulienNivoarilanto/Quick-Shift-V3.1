@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Plan, Employee, Role } from './types';
 import Sidebar from './components/Sidebar';
@@ -45,7 +46,6 @@ export default function App() {
     handleCreateAdditionalUser, handleUpdateUser: handleUpdateOtherUser, handleDeleteUser,
     handleAddTeam, handleUpdateTeam, handleDeleteTeam,
     handleAddMessageGroup, handleUpdateMessageGroup, handleDeleteMessageGroup,
-    // FIX: Add handleMarkConversationAsRead to useData destructuring
     handleSendChatMessage, handleDeleteChatMessage, handleMarkConversationAsRead,
     handleBulkDeleteChatMessages,
     isLoading: isDataLoading
@@ -115,20 +115,6 @@ export default function App() {
     setIsCsvImportOpen(false);
   };
 
-  // Wrapper handlers to inject current user name
-  const onValidateRequestWrapper = (messageId: string) => {
-      if (user) handleValidateRequest(messageId, user.name);
-  };
-  
-  const onRefuseRequestWrapper = (messageId: string, reason: string) => {
-      if (user) handleRefuseRequest(messageId, reason, user.name);
-  };
-
-  const onFollowUpComplaintWrapper = (messageId: string) => {
-      if (user) handleFollowUpComplaint(messageId, user.name);
-  };
-
-
   if (isAuthLoading) {
     return <LoadingSpinner />;
   }
@@ -190,9 +176,9 @@ export default function App() {
               teams={teams}
               users={users}
               absenceTypes={absenceTypes}
-              onValidateRequest={onValidateRequestWrapper}
-              onRefuseRequest={onRefuseRequestWrapper}
-              onFollowUpComplaint={onFollowUpComplaintWrapper}
+              onValidateRequest={handleValidateRequest}
+              onRefuseRequest={handleRefuseRequest}
+              onFollowUpComplaint={handleFollowUpComplaint}
               onAddGroup={handleAddMessageGroup}
               onUpdateGroup={handleUpdateMessageGroup}
               onDeleteGroup={handleDeleteMessageGroup}
@@ -275,7 +261,7 @@ export default function App() {
         <div className="flex-1 flex flex-col overflow-hidden">
           <Header 
             employees={employees} absenceTypes={absenceTypes} inboxMessages={inboxMessages}
-            onValidateRequest={onValidateRequestWrapper} onRefuseRequest={onRefuseRequestWrapper} onFollowUpComplaint={onFollowUpComplaintWrapper}
+            onValidateRequest={handleValidateRequest} onRefuseRequest={handleRefuseRequest} onFollowUpComplaint={handleFollowUpComplaint}
           />
           <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-blue-night-950 p-6">
             {renderView()}

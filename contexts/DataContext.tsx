@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useReducer, ReactNode, useEffect, useCallback } from 'react';
 import { User, Employee, Shift, Role, Location, Department, Absence, AbsenceType, SpecialDay, SpecialDayType, InboxMessage, EmployeeAvailability, WeeklyAvailability, ContractType, EmployeeDocument, DocumentType, Meeting, Team, MessageGroup, ChatMessage } from '../types';
 import * as api from '../services/api';
@@ -59,9 +60,9 @@ interface DataHandlerContextType {
     handleDeleteSpecialDayType: (id: string) => Promise<void>;
     handleSaveSpecialDay: (specialDay: SpecialDay) => Promise<void>;
     handleDeleteSpecialDay: (specialDayId: string) => Promise<void>;
-    handleValidateRequest: (messageId: string, processorName: string) => Promise<void>;
-    handleRefuseRequest: (messageId: string, reason: string, processorName: string) => Promise<void>;
-    handleFollowUpComplaint: (messageId: string, processorName: string) => Promise<void>;
+    handleValidateRequest: (messageId: string) => Promise<void>;
+    handleRefuseRequest: (messageId: string, reason: string) => Promise<void>;
+    handleFollowUpComplaint: (messageId: string) => Promise<void>;
     handleSaveEmployeeAvailability: (employeeId: string, availability: WeeklyAvailability) => Promise<void>;
     handleImportEmployees: (importedData: Array<Omit<Employee, 'id' | 'avatarUrl' | 'companyId'>>) => Promise<void>;
     handleBulkAddShifts: (newShifts: Array<Omit<Shift, 'id' | 'companyId'>>) => Promise<void>;
@@ -309,7 +310,8 @@ export const DataProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     const handleSaveSpecialDay = (specialDay: SpecialDay) => handleSaveItem('specialDays', specialDay, !state.specialDays.some(sd => sd.id === specialDay.id));
     const handleDeleteSpecialDay = (specialDayId: string) => handleDeleteItem('specialDays', specialDayId);
 
-    const handleValidateRequest = async (messageId: string, processorName: string) => {
+    const handleValidateRequest = async (messageId: string) => {
+        const processorName = user?.name || 'Admin';
         const message = state.inboxMessages.find(m => m.id === messageId);
         if (!message || !message.startDate || !message.endDate || !message.absenceTypeId) return;
         
@@ -320,12 +322,14 @@ export const DataProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         await api.apiUpdateItem<InboxMessage>('inboxMessages', messageId, { status: 'validated', processedBy: processorName });
     };
     
-    const handleRefuseRequest = async (messageId: string, reason: string, processorName: string) => {
+    const handleRefuseRequest = async (messageId: string, reason: string) => {
+        const processorName = user?.name || 'Admin';
         // Update status - pass only changed fields
         await api.apiUpdateItem<InboxMessage>('inboxMessages', messageId, { status: 'refused', refusalReason: reason, processedBy: processorName });
     }
 
-    const handleFollowUpComplaint = async (messageId: string, processorName: string) => {
+    const handleFollowUpComplaint = async (messageId: string) => {
+        const processorName = user?.name || 'Admin';
         // Update status - pass only changed fields
         await api.apiUpdateItem<InboxMessage>('inboxMessages', messageId, { status: 'followed-up', processedBy: processorName });
     }
