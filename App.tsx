@@ -46,6 +46,7 @@ export default function App() {
     handleAddTeam, handleUpdateTeam, handleDeleteTeam,
     handleAddMessageGroup, handleUpdateMessageGroup, handleDeleteMessageGroup,
     handleSendChatMessage, handleDeleteChatMessage, handleMarkConversationAsRead,
+    handleBulkDeleteChatMessages,
     isLoading: isDataLoading
   } = useData();
 
@@ -183,6 +184,7 @@ export default function App() {
               onSendMessage={handleSendChatMessage}
               onDeleteMessage={handleDeleteChatMessage}
               onMarkConversationAsRead={handleMarkConversationAsRead}
+              onBulkDeleteMessages={handleBulkDeleteChatMessages}
             />
           : <div className="text-center p-8 bg-white dark:bg-blue-night-900 rounded-lg shadow-md max-w-lg mx-auto">
                 <MessageSquare size={48} className="mx-auto text-blue-500 dark:text-blue-night-400 mb-4" />
