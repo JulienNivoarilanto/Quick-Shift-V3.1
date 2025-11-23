@@ -136,7 +136,7 @@ export const MobileDataProvider: React.FC<{ children: ReactNode }> = ({ children
     
         if (unreadMessageIds.length > 0) {
             // Optimistic update
-            setChatMessages((prev: ChatMessage[]) => prev.map((msg: ChatMessage) => 
+            setChatMessages(prev => prev.map(msg => 
                 unreadMessageIds.includes(msg.id)
                     ? { ...msg, readBy: [...msg.readBy, employee.id] }
                     : msg

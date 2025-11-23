@@ -36,7 +36,7 @@ export default function App() {
     handleSaveAbsence, handleDeleteAbsence, handleAddSpecialDayType, 
     handleUpdateSpecialDayType, handleDeleteSpecialDayType, handleSaveSpecialDay, 
     handleDeleteSpecialDay, handleValidateRequest, handleRefuseRequest, 
-    handleFollowUpComplaint, handleSaveEmployeeAvailability, handleImportEmployees,
+    handleFollowUpComplaint, handleDeleteInboxMessage, handleSaveEmployeeAvailability, handleImportEmployees,
     handleBulkAddShifts, handleBulkDeleteEmployees, handleBulkAssignRole,
     handleSaveEmployeeDocument, handleDeleteEmployeeDocument, handleBulkCreateEmployeeDocuments,
     handleAddDocumentType, handleUpdateDocumentType, handleDeleteDocumentType,
@@ -261,6 +261,7 @@ export default function App() {
           <Header 
             employees={employees} absenceTypes={absenceTypes} inboxMessages={inboxMessages}
             onValidateRequest={handleValidateRequest} onRefuseRequest={handleRefuseRequest} onFollowUpComplaint={handleFollowUpComplaint}
+            onDeleteInboxMessage={handleDeleteInboxMessage}
           />
           <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-blue-night-950 p-6">
             {renderView()}

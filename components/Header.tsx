@@ -23,7 +23,7 @@ const Header: React.FC<Partial<HeaderProps>> = (props) => {
     <header className="h-20 items-center justify-between flex px-6 bg-white dark:bg-blue-night-950 border-b border-gray-200 dark:border-blue-night-900">
         <Clock />
         <div className="flex items-center space-x-4">
-            {user?.plan === 'Pro Plus' && inboxMessages && employees && absenceTypes && onValidateRequest && onRefuseRequest && onFollowUpComplaint && onDeleteInboxMessage && (
+            {user?.plan === 'Pro Plus' && inboxMessages && employees && absenceTypes && onValidateRequest && onRefuseRequest && onFollowUpComplaint && (
                 <Inbox 
                     messages={inboxMessages}
                     employees={employees}
@@ -31,7 +31,7 @@ const Header: React.FC<Partial<HeaderProps>> = (props) => {
                     onValidateRequest={onValidateRequest}
                     onRefuseRequest={onRefuseRequest}
                     onFollowUpComplaint={onFollowUpComplaint}
-                    onDeleteMessage={onDeleteInboxMessage}
+                    onDeleteMessage={onDeleteInboxMessage || (() => {})}
                 />
             )}
            <LanguageSwitcher />
