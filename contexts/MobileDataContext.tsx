@@ -99,7 +99,7 @@ export const MobileDataProvider: React.FC<{ children: ReactNode }> = ({ children
                 readBy: [employee.id],
                 companyId: employee.companyId
             };
-            const newMsg = await api.apiCreateItem('chatMessages', messageToSend);
+            const newMsg = await api.apiCreateItem<ChatMessage>('chatMessages', messageToSend);
             setChatMessages(prev => [...prev, newMsg]);
             return true;
         } catch (error) {
