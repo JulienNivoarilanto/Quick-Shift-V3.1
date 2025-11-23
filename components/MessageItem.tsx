@@ -69,6 +69,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, employee, absenceTyp
     };
 
     const handleDelete = (e: React.MouseEvent) => {
+        e.preventDefault();
         e.stopPropagation();
         if (window.confirm(t('modals.confirmDeleteMultiple', { count: 1 }))) {
             onDelete(message.id);
@@ -87,7 +88,12 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, employee, absenceTyp
                         </div>
                         <div className="flex items-center">
                             <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0 mr-2">{timeAgo(message.date)}</span>
-                            <button onClick={handleDelete} className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" title={t('history.deleteSelected', { count: 1 })}>
+                            <button 
+                                type="button"
+                                onClick={handleDelete} 
+                                className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30" 
+                                title={t('history.deleteSelected', { count: 1 })}
+                            >
                                 <Trash2 size={14} />
                             </button>
                         </div>

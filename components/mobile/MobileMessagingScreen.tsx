@@ -356,7 +356,11 @@ const MobileMessagingScreen: React.FC = () => {
                 <header className="mb-6">
                     <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">{t('mobile.messaging')}</h1>
                 </header>
-                <SegmentedControl tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+                <SegmentedControl 
+                    tabs={tabs} 
+                    activeTab={activeTab} 
+                    onTabChange={(id) => setActiveTab(id as 'group' | 'direct' | 'absence' | 'complaint')} 
+                />
              </div>
             
             <div className="px-4 md:px-6 pb-4">
