@@ -44,7 +44,7 @@ const Inbox: React.FC<InboxProps> = (props) => {
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                // Only close if we are not interacting with a modal
+                // Do not close if interacting with a modal
                 const isModalOpen = document.querySelector('.animate-modal-content-slide-in');
                 if (!isModalOpen) {
                     setIsOpen(false);
