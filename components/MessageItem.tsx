@@ -68,7 +68,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, employee, absenceTyp
         setShowValidationConfirm(false);
     };
 
-    const handleDelete = () => {
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
         if (window.confirm(t('modals.confirmDeleteMultiple', { count: 1 }))) {
             onDelete(message.id);
         }
