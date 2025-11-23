@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Mail, CheckCircle, Clock, AlertTriangle, Trash2 } from 'lucide-react';
 import { InboxMessage, Employee, AbsenceType } from '../types';

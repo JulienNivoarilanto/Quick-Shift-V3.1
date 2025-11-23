@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { InboxMessage, Employee, AbsenceType } from '../types';
 import Avatar from './Avatar';
@@ -71,7 +72,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, employee, absenceTyp
     const handleDelete = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        // Removed window.confirm to let parent handle UI via Modal
         onDelete(message.id);
     }
 
@@ -90,7 +90,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, employee, absenceTyp
                             <button 
                                 type="button"
                                 onClick={handleDelete} 
-                                className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30" 
+                                className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 cursor-pointer z-10 relative" 
                                 title={t('history.deleteSelected', { count: 1 })}
                             >
                                 <Trash2 size={14} />
