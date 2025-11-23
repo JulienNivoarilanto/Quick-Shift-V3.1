@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Mail, Inbox as InboxIcon, Clock, CheckCircle } from 'lucide-react';
+import { Mail, CheckCircle, Clock, AlertTriangle, Trash2 } from 'lucide-react';
 import { InboxMessage, Employee, AbsenceType } from '../types';
 import MessageItem from './MessageItem';
 import { useLanguage } from '../contexts/LanguageContext';
+import Modal from './Modal';
 
 interface InboxProps {
     messages: InboxMessage[];
@@ -20,6 +21,9 @@ const Inbox: React.FC<InboxProps> = (props) => {
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
     const dropdownRef = useRef<HTMLDivElement>(null);
+    
+    // State for delete confirmation modal
+    const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
 
     const pendingMessagesCount = useMemo(() => {
         return messages.filter(m => m.status === 'pending').length;
@@ -40,12 +44,27 @@ const Inbox: React.FC<InboxProps> = (props) => {
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
+                // Only close if we are not interacting with a modal
+                const isModalOpen = document.querySelector('.animate-modal-content-slide-in');
+                if (!isModalOpen) {
+                    setIsOpen(false);
+                }
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    const handleDeleteClick = (messageId: string) => {
+        setMessageToDelete(messageId);
+    };
+
+    const confirmDelete = () => {
+        if (messageToDelete) {
+            onDeleteMessage(messageToDelete);
+            setMessageToDelete(null);
+        }
+    };
 
     return (
         <div className="relative" ref={dropdownRef}>
@@ -99,7 +118,7 @@ const Inbox: React.FC<InboxProps> = (props) => {
                                         onValidate={onValidateRequest}
                                         onRefuse={onRefuseRequest}
                                         onFollowUp={onFollowUpComplaint}
-                                        onDelete={onDeleteMessage}
+                                        onDelete={handleDeleteClick}
                                     />
                                 );
                             })
@@ -122,6 +141,36 @@ const Inbox: React.FC<InboxProps> = (props) => {
                         )}
                     </div>
                 </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {messageToDelete && (
+                <Modal
+                    isOpen={true}
+                    onClose={() => setMessageToDelete(null)}
+                    title={t('modals.confirm')}
+                    footer={
+                        <>
+                            <button onClick={() => setMessageToDelete(null)} className="btn-secondary">{t('modals.cancel')}</button>
+                            <button onClick={confirmDelete} className="btn-danger p-2 flex items-center">
+                                <Trash2 size={16} className="mr-2" /> {t('employees.deleteSelected')}
+                            </button>
+                        </>
+                    }
+                    size="sm"
+                >
+                    <div className="flex items-start space-x-3">
+                        <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full text-red-600 dark:text-red-400">
+                            <AlertTriangle size={24} />
+                        </div>
+                        <div>
+                            <p className="font-semibold text-gray-900 dark:text-white">{t('modals.confirmDeleteMultiple', { count: 1 })}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                This action cannot be undone.
+                            </p>
+                        </div>
+                    </div>
+                </Modal>
             )}
         </div>
     );

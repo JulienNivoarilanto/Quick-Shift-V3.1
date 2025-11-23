@@ -188,7 +188,7 @@ const ChatWindow: FC<{
 
     const handleBulkDelete = () => {
         if (selectedMessageIds.length === 0) return;
-        if (window.confirm(`Are you sure you want to delete ${selectedMessageIds.length} messages?`)) {
+        if (window.confirm(t('modals.confirmDeleteMultiple', {count: selectedMessageIds.length}))) {
             onBulkDeleteMessages(selectedMessageIds);
             setSelectedMessageIds([]);
             setIsSelectionMode(false);

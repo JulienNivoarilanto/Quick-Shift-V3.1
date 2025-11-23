@@ -71,9 +71,8 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, employee, absenceTyp
     const handleDelete = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if (window.confirm(t('modals.confirmDeleteMultiple', { count: 1 }))) {
-            onDelete(message.id);
-        }
+        // Removed window.confirm to let parent handle UI via Modal
+        onDelete(message.id);
     }
 
     return (
