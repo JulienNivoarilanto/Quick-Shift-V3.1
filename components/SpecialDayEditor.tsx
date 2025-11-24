@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from 'react';
 import { SpecialDay, SpecialDayType } from '../types';
 import { Trash2 } from 'lucide-react';
@@ -31,6 +33,7 @@ const SpecialDayEditor: React.FC<SpecialDayEditorProps> = ({ date, specialDay, s
     });
 
     const [formData, setFormData] = useState(getInitialState);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     useEffect(() => {
         setFormData(getInitialState());
@@ -53,7 +56,7 @@ const SpecialDayEditor: React.FC<SpecialDayEditorProps> = ({ date, specialDay, s
     };
 
     const handleDelete = () => {
-        if (specialDay && onDelete && window.confirm('Are you sure you want to remove this special day?')) {
+        if (specialDay && onDelete) {
             onDelete(specialDay.id);
         }
     };
@@ -64,7 +67,7 @@ const SpecialDayEditor: React.FC<SpecialDayEditorProps> = ({ date, specialDay, s
         <div className="flex justify-between items-center w-full">
             <div>
                 {specialDay && onDelete && (
-                    <button type="button" onClick={handleDelete} className="btn-danger p-2">
+                    <button type="button" onClick={() => setShowDeleteConfirm(true)} className="btn-danger p-2">
                         <Trash2 size={20} />
                     </button>
                 )}
@@ -78,6 +81,22 @@ const SpecialDayEditor: React.FC<SpecialDayEditorProps> = ({ date, specialDay, s
 
     return (
         <Modal isOpen={true} onClose={onCancel} title={title} footer={modalFooter}>
+            {showDeleteConfirm && (
+                 <Modal
+                    isOpen={true}
+                    onClose={() => setShowDeleteConfirm(false)}
+                    title="Confirm Deletion"
+                    size="sm"
+                    footer={
+                        <>
+                            <button onClick={() => setShowDeleteConfirm(false)} className="btn-secondary">{t('modals.cancel')}</button>
+                            <button onClick={handleDelete} className="btn-danger">{t('modals.confirm')}</button>
+                        </>
+                    }
+                >
+                    <p>Are you sure you want to remove this special day? This action cannot be undone.</p>
+                </Modal>
+            )}
             <form id="special-day-form" onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label className="label-style">{t('modals.dateLabel')}</label>
@@ -112,10 +131,7 @@ const SpecialDayEditor: React.FC<SpecialDayEditorProps> = ({ date, specialDay, s
                     .dark .btn-secondary { color: #e2e8f0; background-color: #334155; }
                     .btn-secondary:hover { background-color: #cbd5e1; }
                     .dark .btn-secondary:hover { background-color: #475569; }
-                    .btn-danger { padding: 0.625rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; color: #dc2626; background-color: #fee2e2; }
-                    .dark .btn-danger { color: #f87171; background-color: rgba(153, 27, 27, 0.4); }
-                    .btn-danger:hover { background-color: #fecaca; }
-                    .dark .btn-danger:hover { background-color: rgba(153, 27, 27, 0.6); }
+                    .btn-danger { padding: 0.625rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; color: white; background-color: #dc2626; }
                 `}</style>
             </form>
         </Modal>

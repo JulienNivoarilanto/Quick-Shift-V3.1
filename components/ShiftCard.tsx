@@ -48,9 +48,7 @@ const ShiftCard: React.FC<ShiftCardProps> = ({ shift, employee, location, depart
     
     const handleDeleteClick = (e: React.MouseEvent) => {
         e.stopPropagation(); // Prevent onClick from firing
-        if (window.confirm('Are you sure you want to delete this shift?')) {
-            onDelete(shift.id);
-        }
+        onDelete(shift.id);
     };
     
     const handleCardClick = (e: React.MouseEvent) => {

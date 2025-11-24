@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from 'react';
 import { Meeting, Employee } from '../types';
 import { Users, Video, MapPin, Trash2 } from 'lucide-react';
@@ -36,9 +38,7 @@ const MeetingCard: React.FC<MeetingCardProps> = ({ meeting, employees, onClick, 
 
     const handleDeleteClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (window.confirm('Are you sure you want to delete this meeting?')) {
-            onDelete(meeting.id);
-        }
+        onDelete(meeting.id);
     };
 
     const handleCardClick = (e: React.MouseEvent) => {
