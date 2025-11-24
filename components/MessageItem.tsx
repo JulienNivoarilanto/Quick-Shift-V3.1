@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import { InboxMessage, Employee, AbsenceType } from '../types';
 import Avatar from './Avatar';
@@ -72,7 +70,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, employee, absenceTyp
 
     const handleDelete = (e: React.MouseEvent) => {
         e.preventDefault();
-        e.stopPropagation(); // Important: stop event from bubbling up to the container
+        e.stopPropagation();
         onDelete(message.id);
     }
 
