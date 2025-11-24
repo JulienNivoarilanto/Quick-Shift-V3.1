@@ -1,8 +1,6 @@
-
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Employee, Role, ContractType, Team, Location, Department } from '../types';
-import { PlusCircle, Edit, Trash2, Phone, LayoutGrid, List, Upload, Gem, Mail, Filter, X, Lightbulb, Users as UsersIcon, Download, CheckSquare, Briefcase, MapPin, Search, Plus, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Phone, LayoutGrid, List, Upload, Gem, Mail, Filter, X, Lightbulb, Users as UsersIcon, Download, CheckSquare, Briefcase, MapPin, Search, Plus } from 'lucide-react';
 import Avatar from './Avatar';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -303,7 +301,6 @@ const TeamManagement: React.FC<Pick<EmployeeListProps, 'teams' | 'employees' | '
 ({ teams, employees, locations, departments, onAddTeam, onUpdateTeam, onDeleteTeam }) => {
     const { t } = useLanguage();
     const [editorState, setEditorState] = useState<{isOpen: boolean, team: Team | null}>({isOpen: false, team: null});
-    const [teamToDelete, setTeamToDelete] = useState<Team | null>(null);
     const [teamSearchTerm, setTeamSearchTerm] = useState('');
     
     const employeeMap = useMemo(() => new Map(employees.map(e => [e.id, e])), [employees]);
@@ -337,12 +334,11 @@ const TeamManagement: React.FC<Pick<EmployeeListProps, 'teams' | 'employees' | '
         setEditorState({isOpen: false, team: null});
     };
 
-    const handleDeleteConfirm = () => {
-        if (teamToDelete) {
-            onDeleteTeam(teamToDelete.id);
-            setTeamToDelete(null);
+    const handleDelete = (team: Team) => {
+        if(window.confirm(t('teams.confirmDelete', {name: team.name}))) {
+            onDeleteTeam(team.id);
         }
-    };
+    }
 
     return (
         <div>
@@ -357,29 +353,6 @@ const TeamManagement: React.FC<Pick<EmployeeListProps, 'teams' | 'employees' | '
                     onSave={handleSave}
                     teams={teams}
                 />
-            )}
-            {teamToDelete && (
-                <Modal
-                    isOpen={true}
-                    onClose={() => setTeamToDelete(null)}
-                    title={t('teams.confirmDelete', { name: teamToDelete.name })}
-                    size="sm"
-                    footer={
-                        <>
-                            <button onClick={() => setTeamToDelete(null)} className="btn-secondary">{t('modals.cancel')}</button>
-                            <button onClick={handleDeleteConfirm} className="btn-danger flex items-center"><Trash2 size={16} className="mr-2"/>{t('modals.confirm')}</button>
-                        </>
-                    }
-                >
-                    <div className="flex items-start">
-                        <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <AlertTriangle className="h-6 w-6 text-red-600" aria-hidden="true" />
-                        </div>
-                        <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                            <p className="text-sm text-gray-500">This action cannot be undone.</p>
-                        </div>
-                    </div>
-                </Modal>
             )}
             <div className="flex justify-between items-center mb-6">
                  <div>
@@ -428,7 +401,7 @@ const TeamManagement: React.FC<Pick<EmployeeListProps, 'teams' | 'employees' | '
                                     </div>
                                     <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button onClick={() => setEditorState({isOpen: true, team})} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-blue-night-700"><Edit size={16} /></button>
-                                        <button onClick={() => setTeamToDelete(team)} className="p-2 rounded-full text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50"><Trash2 size={16} /></button>
+                                        <button onClick={() => handleDelete(team)} className="p-2 rounded-full text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50"><Trash2 size={16} /></button>
                                     </div>
                                 </div>
                                 <div className="flex-grow my-3">
@@ -459,7 +432,6 @@ const TeamManagement: React.FC<Pick<EmployeeListProps, 'teams' | 'employees' | '
                     })}
                 </div>
             )}
-            <style>{`.btn-danger { color: white; background-color: #dc2626; } .btn-danger:hover { background-color: #b91c1c; }`}</style>
         </div>
     );
 };
@@ -789,9 +761,9 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ employees, roles, onAdd, on
                 .dark .btn-secondary { color: #e2e8f0; background-color: #334155; border-color: #475569; }
                 .btn-secondary:hover { background-color: #cbd5e1; }
                 .dark .btn-secondary:hover { background-color: #475569; }
-                .btn-danger { padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; color: white; background-color: #dc2626; }
+                .btn-danger { padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; color: #dc2626; background-color: #fee2e2; border: 1px solid #fee2e2; }
                 .dark .btn-danger { color: #f87171; background-color: rgba(153, 27, 27, 0.4); border-color: transparent; }
-                .btn-danger:hover { background-color: #b91c1c; }
+                .btn-danger:hover { background-color: #fecaca; }
                 .dark .btn-danger:hover { background-color: rgba(153, 27, 27, 0.6); }
             `}</style>
         </div>

@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Meeting, Employee, Location, Shift, Absence } from '../types';
 import { Trash2, AlertTriangle, Users, Video, MapPin, Lock } from 'lucide-react';
@@ -19,7 +17,7 @@ interface MeetingEditorProps {
     allAbsences: Absence[];
     allMeetings: Meeting[];
     onSave: (meeting: Meeting) => void;
-    onDelete: (meetingId: string) => void;
+    onDelete?: (meetingId: string) => void;
 }
 
 const toInputDateString = (date: Date): string => date.toISOString().split('T')[0];
@@ -57,7 +55,6 @@ const MeetingEditor: React.FC<MeetingEditorProps> = (props) => {
     const [organizerSearch, setOrganizerSearch] = useState('');
     const [error, setError] = useState('');
     const [conflicts, setConflicts] = useState<string[]>([]);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     
     const isPast = meeting ? new Date(meeting.endTime) < new Date() : false;
     const selectedOrganizer = useMemo(() => employees.find(e => e.id === formData.organizerId), [formData.organizerId, employees]);
@@ -164,7 +161,7 @@ const MeetingEditor: React.FC<MeetingEditorProps> = (props) => {
     };
 
     const handleDelete = () => {
-        if (meeting && onDelete) {
+        if (meeting && onDelete && window.confirm(t('modals.confirmDeleteMeeting'))) {
             onDelete(meeting.id);
             onClose();
         }
@@ -174,7 +171,7 @@ const MeetingEditor: React.FC<MeetingEditorProps> = (props) => {
 
     const modalFooter = (
         <div className="flex justify-between items-center w-full">
-            <div>{meeting && onDelete && (<button type="button" onClick={() => setShowDeleteConfirm(true)} disabled={isPast} className="btn-danger p-2"><Trash2 size={20} /></button>)}</div>
+            <div>{meeting && onDelete && (<button type="button" onClick={handleDelete} disabled={isPast} className="btn-danger p-2"><Trash2 size={20} /></button>)}</div>
             <div className="flex space-x-2">
                 <button type="button" onClick={onClose} className="btn-secondary">{t('modals.cancel')}</button>
                 <button type="submit" form="meeting-editor-form" className="btn-primary" disabled={isPast}>{t('modals.saveMeeting')}</button>
@@ -186,22 +183,6 @@ const MeetingEditor: React.FC<MeetingEditorProps> = (props) => {
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={title} footer={modalFooter} size="2xl">
-            {showDeleteConfirm && (
-                <Modal
-                    isOpen={true}
-                    onClose={() => setShowDeleteConfirm(false)}
-                    title={t('modals.confirmDeleteMeeting')}
-                    size="sm"
-                    footer={
-                        <>
-                            <button onClick={() => setShowDeleteConfirm(false)} className="btn-secondary">{t('modals.cancel')}</button>
-                            <button onClick={handleDelete} className="btn-danger">{t('modals.confirm')}</button>
-                        </>
-                    }
-                >
-                    <p>This action cannot be undone.</p>
-                </Modal>
-            )}
             <form id="meeting-editor-form" onSubmit={handleSubmit} className="space-y-4">
                 {isPast && (
                     <p className="text-yellow-700 dark:text-yellow-300 text-sm bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-lg flex items-center">
@@ -291,7 +272,7 @@ const MeetingEditor: React.FC<MeetingEditorProps> = (props) => {
                     .btn-primary:disabled { background-color: #93c5fd; cursor: not-allowed; }
                     .btn-secondary { padding: 0.625rem 1rem; border-radius: 0.5rem; font-weight: 600; background-color: #e2e8f0; }
                     .dark .btn-secondary { background-color: #334155; color: #e2e8f0; }
-                    .btn-danger { padding: 0.625rem 1rem; border-radius: 0.5rem; font-weight: 600; color: white; background-color: #dc2626; }
+                    .btn-danger { padding: 0.625rem; border-radius: 0.5rem; font-weight: 600; color: #dc2626; background-color: #fee2e2; }
                     .dark .btn-danger { color: #f87171; background-color: rgba(153, 27, 27, 0.4); }
                     .btn-danger:disabled { background-color: #fca5a5; cursor: not-allowed; opacity: 0.7; }
                     .dark .btn-danger:disabled { background-color: rgba(153, 27, 27, 0.2); }

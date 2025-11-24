@@ -7,7 +7,6 @@ import MultiSelectDropdown from './MultiSelectDropdown';
 import PurgeHistoryModal from './PurgeHistoryModal';
 import HistoryExportModal from './HistoryExportModal';
 import Avatar from './Avatar';
-import Modal from './Modal';
 
 type HistoryItemType = 'Presence' | 'Lateness' | 'Absence' | 'Meeting';
 
@@ -58,8 +57,6 @@ const History: FC<HistoryProps> = (props) => {
     const [selectedItems, setSelectedItems] = useState<{ id: string; type: 'shifts' | 'absences' | 'meetings' }[]>([]);
     const [isPurgeModalOpen, setIsPurgeModalOpen] = useState(false);
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
 
     const employeeMap = useMemo(() => new Map(employees.map(e => [e.id, e])), [employees]);
     const absenceTypeMap = useMemo(() => new Map(absenceTypes.map(at => [at.id, at])), [absenceTypes]);
@@ -227,15 +224,10 @@ const History: FC<HistoryProps> = (props) => {
     };
     
     const handleDeleteSelected = () => {
-        if(selectedItems.length > 0) {
-            setShowDeleteConfirm(true);
+        if (window.confirm(t('history.confirmDelete', { count: selectedItems.length }))) {
+            onDeleteHistoryItems(selectedItems);
+            setSelectedItems([]);
         }
-    };
-    
-    const confirmDeleteSelected = () => {
-        onDeleteHistoryItems(selectedItems);
-        setSelectedItems([]);
-        setShowDeleteConfirm(false);
     };
     
     const handleConfirmPurge = async (startDate: Date, endDate: Date) => {
@@ -375,18 +367,6 @@ const History: FC<HistoryProps> = (props) => {
                     data={filteredAndSortedHistory}
                     employees={employees}
                 />
-            )}
-            
-            {showDeleteConfirm && (
-                <Modal
-                    isOpen={true}
-                    onClose={() => setShowDeleteConfirm(false)}
-                    title={t('history.deleteSelected', {count: selectedItems.length})}
-                    size="sm"
-                    footer={<><button onClick={() => setShowDeleteConfirm(false)} className="btn-secondary">{t('modals.cancel')}</button><button onClick={confirmDeleteSelected} className="btn-danger">{t('modals.confirm')}</button></>}
-                >
-                    <p>{t('history.confirmDelete', { count: selectedItems.length })}</p>
-                </Modal>
             )}
 
             <style>{`

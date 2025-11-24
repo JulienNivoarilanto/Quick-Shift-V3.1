@@ -43,7 +43,9 @@ const AbsenceCard: React.FC<AbsenceCardProps> = ({ absence, employee, absenceTyp
 
     const handleDeleteClick = (e: React.MouseEvent) => {
         e.stopPropagation(); // Prevent onClick from firing
-        onDelete(absence.id);
+        if (window.confirm('Are you sure you want to delete this absence?')) {
+            onDelete(absence.id);
+        }
     };
     
     const title = `${employee.name} - ${absenceName}`;

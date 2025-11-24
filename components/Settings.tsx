@@ -1,8 +1,6 @@
-
-
 import React, { useState } from 'react';
 import { Role, Employee, Location, Shift, Department, AbsenceType, Absence, SpecialDayType, SpecialDay, DocumentType, EmployeeDocument } from '../types';
-import { PlusCircle, Edit, Trash2, Users, MapPin, Briefcase, UserMinus, CalendarDays, Lightbulb, Search, Gem, Loader2, Radar, FileText, Info, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Users, MapPin, Briefcase, UserMinus, CalendarDays, Lightbulb, Search, Gem, Loader2, Radar, FileText, Info } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import Modal from './Modal';
 import FeatureTour, { TourStep } from './FeatureTour';
@@ -117,7 +115,7 @@ const InfoListItem: React.FC<{
 // #endregion
 
 // #region Settings Panels
-const RoleSettingsPanel: React.FC<Pick<SettingsProps, 'roles' | 'employees' | 'onAddRole' | 'onUpdateRole' | 'onDeleteRole'> & { requestDelete: (title: string, onConfirm: () => void) => void }> = ({ roles, employees, onAddRole, onUpdateRole, onDeleteRole, requestDelete }) => {
+const RoleSettingsPanel: React.FC<Pick<SettingsProps, 'roles' | 'employees' | 'onAddRole' | 'onUpdateRole' | 'onDeleteRole'>> = ({ roles, employees, onAddRole, onUpdateRole, onDeleteRole }) => {
     const { t } = useLanguage();
     const [modalState, setModalState] = useState<{ isOpen: boolean; role: Role | null }>({ isOpen: false, role: null });
     const [roleName, setRoleName] = useState('');
@@ -143,7 +141,7 @@ const RoleSettingsPanel: React.FC<Pick<SettingsProps, 'roles' | 'employees' | 'o
                     usageCount={countEmployeesInRole(role.name)} 
                     usageLabel={t('settings.usersCount')} 
                     onEdit={() => openModal(role)} 
-                    onDelete={() => requestDelete(t('modals.confirmDeleteRole', { name: role.name }), () => onDeleteRole(role.id))}
+                    onDelete={() => { if (window.confirm(t('modals.confirmDeleteRole', { name: role.name }))) { onDeleteRole(role.id); }}}
                     data-tour-id={index === 0 ? "settings-hover-item" : undefined}
                 />
             ))}
@@ -157,7 +155,7 @@ const RoleSettingsPanel: React.FC<Pick<SettingsProps, 'roles' | 'employees' | 'o
     );
 };
 
-const LocationSettingsPanel: React.FC<Pick<SettingsProps, 'locations' | 'shifts' | 'onAddLocation' | 'onUpdateLocation' | 'onDeleteLocation'> & { requestDelete: (title: string, onConfirm: () => void) => void }> = ({ locations, shifts, onAddLocation, onUpdateLocation, onDeleteLocation, requestDelete }) => {
+const LocationSettingsPanel: React.FC<Pick<SettingsProps, 'locations' | 'shifts' | 'onAddLocation' | 'onUpdateLocation' | 'onDeleteLocation'>> = ({ locations, shifts, onAddLocation, onUpdateLocation, onDeleteLocation }) => {
     const { t } = useLanguage();
     const { user } = useAuth();
     const [modalState, setModalState] = useState<{ isOpen: boolean; loc: Location | null }>({ isOpen: false, loc: null });
@@ -303,7 +301,7 @@ const LocationSettingsPanel: React.FC<Pick<SettingsProps, 'locations' | 'shifts'
                         usageCount={countShiftsAtLocation(loc.id)} 
                         usageLabel={t('settings.shiftsCount')} 
                         onEdit={() => openModal(loc)} 
-                        onDelete={() => requestDelete(t('modals.confirmDeleteLocation', { name: loc.name }), () => onDeleteLocation(loc.id))}
+                        onDelete={() => { if (window.confirm(t('modals.confirmDeleteLocation', { name: loc.name }))) { onDeleteLocation(loc.id); }}}
                         statusIndicator={geofenceIndicator}
                         {...(isProPlus && {
                             toggle: {
@@ -386,7 +384,7 @@ const LocationSettingsPanel: React.FC<Pick<SettingsProps, 'locations' | 'shifts'
     );
 };
 
-const DepartmentSettingsPanel: React.FC<Pick<SettingsProps, 'departments' | 'shifts' | 'onAddDepartment' | 'onUpdateDepartment' | 'onDeleteDepartment'> & { requestDelete: (title: string, onConfirm: () => void) => void }> = ({ departments, shifts, onAddDepartment, onUpdateDepartment, onDeleteDepartment, requestDelete }) => {
+const DepartmentSettingsPanel: React.FC<Pick<SettingsProps, 'departments' | 'shifts' | 'onAddDepartment' | 'onUpdateDepartment' | 'onDeleteDepartment'>> = ({ departments, shifts, onAddDepartment, onUpdateDepartment, onDeleteDepartment }) => {
     const { t } = useLanguage();
     const [modalState, setModalState] = useState<{ isOpen: boolean; dept: Department | null }>({ isOpen: false, dept: null });
     const [deptName, setDeptName] = useState('');
@@ -406,7 +404,7 @@ const DepartmentSettingsPanel: React.FC<Pick<SettingsProps, 'departments' | 'shi
     return (
         <SettingsPanel title={t('settings.manageDepartments')} description={t('settings.departmentsDescription')} buttonText={t('settings.addDepartment')} onAdd={() => openModal()}>
             {departments.map(dept => (
-                <InfoListItem key={dept.id} mainText={dept.name} usageCount={countShiftsInDept(dept.id)} usageLabel={t('settings.shiftsCount')} onEdit={() => openModal(dept)} onDelete={() => requestDelete(t('modals.confirmDeleteDepartment', { name: dept.name }), () => onDeleteDepartment(dept.id))} />
+                <InfoListItem key={dept.id} mainText={dept.name} usageCount={countShiftsInDept(dept.id)} usageLabel={t('settings.shiftsCount')} onEdit={() => openModal(dept)} onDelete={() => { if (window.confirm(t('modals.confirmDeleteDepartment', { name: dept.name }))) { onDeleteDepartment(dept.id); }}} />
             ))}
             <Modal isOpen={modalState.isOpen} onClose={closeModal} title={modalState.dept ? t('settings.editDepartment') : t('settings.addDepartment')} footer={footer} size="md">
                 <div className="space-y-2">
@@ -418,7 +416,7 @@ const DepartmentSettingsPanel: React.FC<Pick<SettingsProps, 'departments' | 'shi
     );
 };
 
-const AbsenceSettingsPanel: React.FC<Pick<SettingsProps, 'absenceTypes' | 'absences' | 'onAddAbsenceType' | 'onUpdateAbsenceType' | 'onDeleteAbsenceType'> & { requestDelete: (title: string, onConfirm: () => void) => void }> = ({ absenceTypes, absences, onAddAbsenceType, onUpdateAbsenceType, onDeleteAbsenceType, requestDelete }) => {
+const AbsenceSettingsPanel: React.FC<Pick<SettingsProps, 'absenceTypes' | 'absences' | 'onAddAbsenceType' | 'onUpdateAbsenceType' | 'onDeleteAbsenceType'>> = ({ absenceTypes, absences, onAddAbsenceType, onUpdateAbsenceType, onDeleteAbsenceType }) => {
     const { t } = useLanguage();
     const [modalState, setModalState] = useState<{ isOpen: boolean; at: AbsenceType | null }>({ isOpen: false, at: null });
     const [atData, setAtData] = useState({ name: '', color: '#f44336' });
@@ -438,7 +436,7 @@ const AbsenceSettingsPanel: React.FC<Pick<SettingsProps, 'absenceTypes' | 'absen
     return (
         <SettingsPanel title={t('settings.manageAbsenceTypes')} description={t('settings.absenceTypesDescription')} buttonText={t('settings.addAbsenceType')} onAdd={() => openModal()}>
             {absenceTypes.map(at => (
-                <InfoListItem key={at.id} mainText={at.name} usageCount={countAbsencesOfType(at.id)} usageLabel={t('settings.absencesCount')} colorIndicator={at.color} onEdit={() => openModal(at)} onDelete={() => requestDelete(t('modals.confirmDeleteAbsenceType', { name: at.name }), () => onDeleteAbsenceType(at.id))} />
+                <InfoListItem key={at.id} mainText={at.name} usageCount={countAbsencesOfType(at.id)} usageLabel={t('settings.absencesCount')} colorIndicator={at.color} onEdit={() => openModal(at)} onDelete={() => { if (window.confirm(t('modals.confirmDeleteAbsenceType', { name: at.name }))) { onDeleteAbsenceType(at.id); }}} />
             ))}
             <Modal isOpen={modalState.isOpen} onClose={closeModal} title={modalState.at ? t('settings.editAbsenceType') : t('settings.addAbsenceType')} footer={footer} size="md">
                 <div className="space-y-4">
@@ -450,7 +448,7 @@ const AbsenceSettingsPanel: React.FC<Pick<SettingsProps, 'absenceTypes' | 'absen
     );
 };
 
-const CalendarSettingsPanel: React.FC<Pick<SettingsProps, 'specialDayTypes' | 'specialDays' | 'onAddSpecialDayType' | 'onUpdateSpecialDayType' | 'onDeleteSpecialDayType'> & { requestDelete: (title: string, onConfirm: () => void) => void }> = ({ specialDayTypes, specialDays, onAddSpecialDayType, onUpdateSpecialDayType, onDeleteSpecialDayType, requestDelete }) => {
+const CalendarSettingsPanel: React.FC<Pick<SettingsProps, 'specialDayTypes' | 'specialDays' | 'onAddSpecialDayType' | 'onUpdateSpecialDayType' | 'onDeleteSpecialDayType'>> = ({ specialDayTypes, specialDays, onAddSpecialDayType, onUpdateSpecialDayType, onDeleteSpecialDayType }) => {
     const { t } = useLanguage();
     const [modalState, setModalState] = useState<{ isOpen: boolean; sdt: SpecialDayType | null }>({ isOpen: false, sdt: null });
     const [sdtData, setSdtData] = useState({ name: '', isHoliday: true });
@@ -470,7 +468,7 @@ const CalendarSettingsPanel: React.FC<Pick<SettingsProps, 'specialDayTypes' | 's
     return (
         <SettingsPanel title={t('settings.manageSpecialDayTypes')} description={t('settings.specialDayTypesDescription')} buttonText={t('settings.addSpecialDayType')} onAdd={() => openModal()}>
             {specialDayTypes.map(sdt => (
-                <InfoListItem key={sdt.id} mainText={sdt.name} subText={sdt.isHoliday ? t('settings.holidayBlocking') : t('settings.eventNonBlocking')} usageCount={countSpecialDaysOfType(sdt.id)} usageLabel={t('settings.daysCount')} onEdit={() => openModal(sdt)} onDelete={() => requestDelete(t('modals.confirmDeleteSpecialDayType', { name: sdt.name }), () => onDeleteSpecialDayType(sdt.id))} />
+                <InfoListItem key={sdt.id} mainText={sdt.name} subText={sdt.isHoliday ? t('settings.holidayBlocking') : t('settings.eventNonBlocking')} usageCount={countSpecialDaysOfType(sdt.id)} usageLabel={t('settings.daysCount')} onEdit={() => openModal(sdt)} onDelete={() => { if (window.confirm(t('modals.confirmDeleteSpecialDayType', { name: sdt.name }))) { onDeleteSpecialDayType(sdt.id); }}} />
             ))}
             <Modal isOpen={modalState.isOpen} onClose={closeModal} title={modalState.sdt ? t('settings.editSpecialDayType') : t('settings.addSpecialDayType')} footer={footer} size="md">
                 <div className="space-y-4">
@@ -482,7 +480,7 @@ const CalendarSettingsPanel: React.FC<Pick<SettingsProps, 'specialDayTypes' | 's
     );
 };
 
-const DocumentTypeSettingsPanel: React.FC<Pick<SettingsProps, 'documentTypes' | 'employeeDocuments' | 'onAddDocumentType' | 'onUpdateDocumentType' | 'onDeleteDocumentType'> & { requestDelete: (title: string, onConfirm: () => void) => void }> = ({ documentTypes, employeeDocuments, onAddDocumentType, onUpdateDocumentType, onDeleteDocumentType, requestDelete }) => {
+const DocumentTypeSettingsPanel: React.FC<Pick<SettingsProps, 'documentTypes' | 'employeeDocuments' | 'onAddDocumentType' | 'onUpdateDocumentType' | 'onDeleteDocumentType'>> = ({ documentTypes, employeeDocuments, onAddDocumentType, onUpdateDocumentType, onDeleteDocumentType }) => {
     const { t } = useLanguage();
     const [modalState, setModalState] = useState<{ isOpen: boolean; docType: DocumentType | null }>({ isOpen: false, docType: null });
     const [docTypeData, setDocTypeData] = useState({ name: '', isUnique: false });
@@ -529,7 +527,7 @@ const DocumentTypeSettingsPanel: React.FC<Pick<SettingsProps, 'documentTypes' | 
                     usageCount={countDocsOfType(docType.id)} 
                     usageLabel={t('settings.documentsCount')} 
                     onEdit={() => openModal(docType)} 
-                    onDelete={() => requestDelete(t('modals.confirmDeleteDocumentType', { name: docType.name }), () => onDeleteDocumentType(docType.id))}
+                    onDelete={() => { if (window.confirm(t('modals.confirmDeleteDocumentType', { name: docType.name }))) { onDeleteDocumentType(docType.id); }}}
                 />
             ))}
             <Modal isOpen={modalState.isOpen} onClose={closeModal} title={modalState.docType ? t('settings.editDocumentType') : t('settings.addDocumentType')} footer={footer} size="md">
@@ -571,18 +569,6 @@ const Settings: React.FC<SettingsProps> = (props) => {
     const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState('roles');
     const [isTourActive, setIsTourActive] = useState(false);
-    const [deleteConfirm, setDeleteConfirm] = useState<{isOpen: boolean, title: string, onConfirm: () => void}>({isOpen: false, title: '', onConfirm: () => {}});
-
-    const requestDelete = (title: string, onConfirm: () => void) => {
-        setDeleteConfirm({
-            isOpen: true,
-            title,
-            onConfirm: () => {
-                onConfirm();
-                setDeleteConfirm({ isOpen: false, title: '', onConfirm: () => {} });
-            }
-        });
-    };
 
     const navItems = [
         { id: 'roles', label: t('settings.roles'), icon: <Users size={20} /> },
@@ -595,12 +581,12 @@ const Settings: React.FC<SettingsProps> = (props) => {
 
     const renderContent = () => {
         switch (activeTab) {
-            case 'roles': return <RoleSettingsPanel {...props} requestDelete={requestDelete} />;
-            case 'locations': return <LocationSettingsPanel {...props} requestDelete={requestDelete} />;
-            case 'departments': return <DepartmentSettingsPanel {...props} requestDelete={requestDelete} />;
-            case 'absences': return <AbsenceSettingsPanel {...props} requestDelete={requestDelete} />;
-            case 'calendar': return <CalendarSettingsPanel {...props} requestDelete={requestDelete} />;
-            case 'documentTypes': return <DocumentTypeSettingsPanel {...props} requestDelete={requestDelete} />;
+            case 'roles': return <RoleSettingsPanel {...props} />;
+            case 'locations': return <LocationSettingsPanel {...props} />;
+            case 'departments': return <DepartmentSettingsPanel {...props} />;
+            case 'absences': return <AbsenceSettingsPanel {...props} />;
+            case 'calendar': return <CalendarSettingsPanel {...props} />;
+            case 'documentTypes': return <DocumentTypeSettingsPanel {...props} />;
             default: return null;
         }
     };
@@ -641,31 +627,6 @@ const Settings: React.FC<SettingsProps> = (props) => {
                     {renderContent()}
                 </main>
             </div>
-
-            {deleteConfirm.isOpen && (
-                <Modal
-                    isOpen={true}
-                    onClose={() => setDeleteConfirm({ ...deleteConfirm, isOpen: false })}
-                    title="Confirm Deletion"
-                    size="sm"
-                    footer={
-                        <>
-                            <button onClick={() => setDeleteConfirm({ ...deleteConfirm, isOpen: false })} className="btn-secondary">{t('modals.cancel')}</button>
-                            <button onClick={deleteConfirm.onConfirm} className="btn-danger flex items-center"><Trash2 size={16} className="mr-2"/>{t('modals.confirm')}</button>
-                        </>
-                    }
-                >
-                    <div className="flex items-start">
-                        <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <AlertTriangle className="h-6 w-6 text-red-600" aria-hidden="true" />
-                        </div>
-                        <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                            <p className="text-sm text-gray-500">{deleteConfirm.title}</p>
-                        </div>
-                    </div>
-                </Modal>
-            )}
-
             <style>{`
                 .label-style { display: block; margin-bottom: 0.375rem; font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; color: #475569; }
                 .dark .label-style { color: #cbd5e1; }
@@ -678,8 +639,6 @@ const Settings: React.FC<SettingsProps> = (props) => {
                 .dark .btn-secondary { color: #e2e8f0; background-color: #334155; }
                 .btn-secondary:hover { background-color: #cbd5e1; }
                 .dark .btn-secondary:hover { background-color: #475569; }
-                .btn-danger { color: white; background-color: #dc2626; padding: 0.625rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600;}
-                .btn-danger:hover { background-color: #b91c1c; }
             `}</style>
         </div>
     );

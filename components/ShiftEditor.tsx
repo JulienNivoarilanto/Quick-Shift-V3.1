@@ -20,7 +20,7 @@ interface ShiftEditorProps {
     allEmployeeAvailabilities: EmployeeAvailability[];
     onSave: (shift: Shift) => void;
     onCancel: () => void;
-    onDelete: (shiftId: string) => void;
+    onDelete?: (shiftId: string) => void;
 }
 
 const toInputDateString = (date: Date): string => {
@@ -102,7 +102,6 @@ const ShiftEditor: React.FC<ShiftEditorProps> = (props) => {
     const [formData, setFormData] = useState(getInitialState);
     const [error, setError] = useState<string | null>(null);
     const [availabilityStatus, setAvailabilityStatus] = useState<AvailabilityStatus>('available');
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const isNew = !shift;
     const today = useMemo(() => {
@@ -240,7 +239,7 @@ const ShiftEditor: React.FC<ShiftEditorProps> = (props) => {
     };
 
     const handleDelete = () => {
-        if (shift) {
+        if (shift && onDelete && window.confirm(t('modals.confirmDeleteShift'))) {
             onDelete(shift.id);
         }
     };
@@ -262,7 +261,7 @@ const ShiftEditor: React.FC<ShiftEditorProps> = (props) => {
         <div className="flex justify-between items-center w-full">
             <div>
                 {shift && onDelete && (
-                    <button type="button" onClick={() => setShowDeleteConfirm(true)} className="btn-danger p-2" disabled={isReadOnly || isClockedIn}>
+                    <button type="button" onClick={handleDelete} className="btn-danger p-2" disabled={isReadOnly || isClockedIn}>
                         <Trash2 size={20} />
                     </button>
                 )}
@@ -282,22 +281,6 @@ const ShiftEditor: React.FC<ShiftEditorProps> = (props) => {
 
     return (
         <Modal isOpen={true} onClose={onCancel} title={title} footer={modalFooter}>
-            {showDeleteConfirm && (
-                <Modal
-                    isOpen={true}
-                    onClose={() => setShowDeleteConfirm(false)}
-                    title={t('modals.confirmDeleteShift')}
-                    size="sm"
-                    footer={
-                        <>
-                            <button onClick={() => setShowDeleteConfirm(false)} className="btn-secondary">{t('modals.cancel')}</button>
-                            <button onClick={handleDelete} className="btn-danger">{t('modals.confirm')}</button>
-                        </>
-                    }
-                >
-                    <p>Are you sure? This action cannot be undone.</p>
-                </Modal>
-            )}
             <form id="shift-editor-form" onSubmit={handleSubmit} className="space-y-4">
                  {error && <p className="text-red-600 dark:text-red-400 text-sm bg-red-100 dark:bg-red-900/30 p-3 rounded-lg flex items-center"><AlertTriangle size={16} className="mr-2"/>{error}</p>}
                  {isReadOnly && (

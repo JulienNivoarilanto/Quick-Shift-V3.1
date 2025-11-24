@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo } from 'react';
 import { Shift, Employee, Role, Location, Department, Absence, AbsenceType, SpecialDay, SpecialDayType, EmployeeAvailability, ClockingStatus, Meeting, Team } from '../types';
 import ShiftCard from './ShiftCard';
@@ -11,7 +13,7 @@ import CalendarFilter from './CalendarFilter';
 import SpecialDayEditor from './SpecialDayEditor';
 import ExportModal from './ExportModal';
 import FeatureTour, { TourStep } from './FeatureTour';
-import { ChevronLeft, ChevronRight, Plus, Trash2, CheckSquare, XSquare, UserMinus, Star, Download, ZoomIn, ZoomOut, Lock, Unlock, Lightbulb, Repeat, Users, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trash2, CheckSquare, XSquare, UserMinus, Star, Download, ZoomIn, ZoomOut, Lock, Unlock, Lightbulb, Repeat, Users } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -147,7 +149,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = (props) => {
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [isBulkAddModalOpen, setIsBulkAddModalOpen] = useState(false);
     const [dayDetailModal, setDayDetailModal] = useState<{isOpen: boolean, date: Date | null}>({isOpen: false, date: null});
-    const [deleteConfirm, setDeleteConfirm] = useState<{isOpen: boolean, title: string, message: string, onConfirm: () => void}>({isOpen: false, title: '', message: '', onConfirm: () => {}});
 
     const [isSelectionModeActive, setIsSelectionModeActive] = useState(false);
     const [selectedShiftIds, setSelectedShiftIds] = useState<string[]>([]);
@@ -369,57 +370,22 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = (props) => {
         onSaveShift(shift); 
         setShiftEditorState({isOpen: false, shift: null}); 
     }
-    const requestShiftDelete = (shiftId: string) => {
-        setDeleteConfirm({
-            isOpen: true,
-            title: t('modals.confirmDeleteShift'),
-            message: 'This action cannot be undone.',
-            onConfirm: () => {
-                onDeleteShift(shiftId);
-                setDeleteConfirm({ isOpen: false, title: '', message: '', onConfirm: () => {} });
-            }
-        });
-    };
-    const requestAbsenceDelete = (absenceId: string) => {
-         setDeleteConfirm({
-            isOpen: true,
-            title: t('modals.confirmDelete', {name: 'this absence'}),
-            message: 'This action cannot be undone.',
-            onConfirm: () => {
-                onDeleteAbsence(absenceId);
-                setAbsenceEditorState({isOpen: false, absence: null});
-                setDeleteConfirm({ isOpen: false, title: '', message: '', onConfirm: () => {} });
-            }
-        });
-    };
-    const requestMeetingDelete = (meetingId: string) => {
-        setDeleteConfirm({
-            isOpen: true,
-            title: t('modals.confirmDeleteMeeting'),
-            message: 'This action cannot be undone.',
-            onConfirm: () => {
-                onDeleteMeeting(meetingId);
-                setDeleteConfirm({ isOpen: false, title: '', message: '', onConfirm: () => {} });
-            }
-        });
-    };
-
+    const handleShiftDelete = (shiftId: string) => { 
+        onDeleteShift(shiftId); 
+        setShiftEditorState({isOpen: false, shift: null}); 
+    }
      const handleDeleteSelected = () => {
         const totalSelected = selectedShiftIds.length + selectedMeetingIds.length;
-        if (totalSelected > 0) {
-            setDeleteConfirm({
-                isOpen: true,
-                title: t('modals.confirmDeleteMultiple', { count: totalSelected }),
-                message: 'This action cannot be undone.',
-                onConfirm: () => {
-                    if (selectedShiftIds.length > 0) onDeleteMultipleShifts(selectedShiftIds);
-                    if (selectedMeetingIds.length > 0) onDeleteMultipleMeetings(selectedMeetingIds);
-                    setSelectedShiftIds([]);
-                    setSelectedMeetingIds([]);
-                    setIsSelectionModeActive(false);
-                    setDeleteConfirm({ isOpen: false, title: '', message: '', onConfirm: () => {} });
-                }
-            });
+        if(totalSelected > 0 && window.confirm(t('modals.confirmDeleteMultiple', { count: totalSelected }))) {
+            if (selectedShiftIds.length > 0) {
+                onDeleteMultipleShifts(selectedShiftIds);
+            }
+            if (selectedMeetingIds.length > 0) {
+                onDeleteMultipleMeetings(selectedMeetingIds);
+            }
+            setSelectedShiftIds([]);
+            setSelectedMeetingIds([]);
+            setIsSelectionModeActive(false);
         }
     }
     
@@ -427,8 +393,9 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = (props) => {
     const handleAbsenceSave = (absence: Absence) => { onSaveAbsence(absence); setAbsenceEditorState({isOpen: false, absence: null}); }
     const handleSpecialDaySave = (specialDay: SpecialDay) => { onSaveSpecialDay(specialDay); setSpecialDayEditorState({isOpen: false, specialDay: null, date: null}); }
     const handleMeetingSave = (meeting: Meeting) => { onSaveMeeting(meeting); setMeetingEditorState({isOpen: false, meeting: null}); }
-    
+    const handleAbsenceDelete = (absenceId: string) => { onDeleteAbsence(absenceId); setAbsenceEditorState({isOpen: false, absence: null}); }
     const handleSpecialDayDelete = (specialDayId: string) => { onDeleteSpecialDay(specialDayId); setSpecialDayEditorState({isOpen: false, specialDay: null, date: null}); }
+    const handleMeetingDelete = (meetingId: string) => { onDeleteMeeting(meetingId); setMeetingEditorState({isOpen: false, meeting: null}); }
     
     const toggleSelectionMode = () => { setIsSelectionModeActive(!isSelectionModeActive); setSelectedShiftIds([]); setSelectedMeetingIds([]); }
     const toggleShiftSelection = (shiftId: string) => setSelectedShiftIds(prev => prev.includes(shiftId) ? prev.filter(id => id !== shiftId) : [...prev, shiftId]);
@@ -620,7 +587,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = (props) => {
                                                     meeting={meeting}
                                                     employees={employees}
                                                     onClick={() => openEditMeetingModal(meeting)}
-                                                    onDelete={requestMeetingDelete}
+                                                    onDelete={handleMeetingDelete}
                                                     onDragStart={(e, meetingId) => handleDragStart(e, meetingId, 'meeting')}
                                                     isSelectionModeActive={isSelectionModeActive}
                                                     isSelected={selectedMeetingIds.includes(meeting.id)}
@@ -640,7 +607,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = (props) => {
                                                     const isShiftLocked = shift.endTime < new Date() || !!shift.actualStartTime;
                                                     return (
                                                         <div key={shift.id} className={`transition-opacity duration-300 ${draggedItemId?.type === 'shift' && draggedItemId.id === shift.id ? 'opacity-30' : 'opacity-100'}`}>
-                                                            <ShiftCard shift={shift} location={locations.find(l => l.id === shift.locationId)} department={departments.find(d => d.id === shift.departmentId)} onClick={() => openEditShiftModal(shift)} onDelete={requestShiftDelete} isSelectionModeActive={false} isSelected={false} onToggleSelect={() => {}} onDragStart={(e, shiftId) => handleDragStart(e, shiftId, 'shift')} zoomLevel={currentZoomLevel} isLocked={isLocked || isShiftLocked} />
+                                                            <ShiftCard shift={shift} location={locations.find(l => l.id === shift.locationId)} department={departments.find(d => d.id === shift.departmentId)} onClick={() => openEditShiftModal(shift)} onDelete={handleShiftDelete} isSelectionModeActive={false} isSelected={false} onToggleSelect={() => {}} onDragStart={(e, shiftId) => handleDragStart(e, shiftId, 'shift')} zoomLevel={currentZoomLevel} isLocked={isLocked || isShiftLocked} />
                                                         </div>
                                                     )
                                                 })}
@@ -652,13 +619,13 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = (props) => {
                                     
                                     {absencesForDay.map(absence => {
                                         const isAbsenceLocked = absence.endDate < new Date();
-                                        return <AbsenceCard key={absence.id} absence={absence} employee={employees.find(e => e.id === absence.employeeId)} absenceType={absenceTypes.find(at => at.id === absence.absenceTypeId)} onClick={() => openEditAbsenceModal(absence)} onDelete={requestAbsenceDelete} zoomLevel={currentZoomLevel} isLocked={isLocked || isAbsenceLocked} />
+                                        return <AbsenceCard key={absence.id} absence={absence} employee={employees.find(e => e.id === absence.employeeId)} absenceType={absenceTypes.find(at => at.id === absence.absenceTypeId)} onClick={() => openEditAbsenceModal(absence)} onDelete={onDeleteAbsence} zoomLevel={currentZoomLevel} isLocked={isLocked || isAbsenceLocked} />
                                     })}
                                     {assignedShiftsForDay.map(shift => {
                                         const isShiftLocked = shift.endTime < new Date() || !!shift.actualStartTime;
                                         return (
                                             <div key={shift.id} className={`transition-opacity duration-300 ${draggedItemId?.type === 'shift' && draggedItemId.id === shift.id ? 'opacity-30' : 'opacity-100'}`} data-tour-id={firstShiftTargetInfo && isSameDay(day, firstShiftTargetInfo.day) && shift.id === firstShiftTargetInfo.shiftId ? 'schedule-drag-shift' : undefined}>
-                                                <ShiftCard shift={shift} employee={employees.find(e => e.id === shift.employeeId)} location={locations.find(l => l.id === shift.locationId)} department={departments.find(d => d.id === shift.departmentId)} onDragStart={(e, shiftId) => handleDragStart(e, shiftId, 'shift')} onClick={() => openEditShiftModal(shift)} onDelete={requestShiftDelete} isSelectionModeActive={isSelectionModeActive} isSelected={selectedShiftIds.includes(shift.id)} onToggleSelect={toggleShiftSelection} zoomLevel={currentZoomLevel} isLocked={isLocked || isShiftLocked} clockingStatus={getClockingStatus(shift)} />
+                                                <ShiftCard shift={shift} employee={employees.find(e => e.id === shift.employeeId)} location={locations.find(l => l.id === shift.locationId)} department={departments.find(d => d.id === shift.departmentId)} onDragStart={(e, shiftId) => handleDragStart(e, shiftId, 'shift')} onClick={() => openEditShiftModal(shift)} onDelete={handleShiftDelete} isSelectionModeActive={isSelectionModeActive} isSelected={selectedShiftIds.includes(shift.id)} onToggleSelect={toggleShiftSelection} zoomLevel={currentZoomLevel} isLocked={isLocked || isShiftLocked} clockingStatus={getClockingStatus(shift)} />
                                             </div>
                                         )
                                     })}
@@ -725,7 +692,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = (props) => {
                     selectedDate={shiftEditorState.date}
                     onSave={handleShiftSave}
                     onCancel={() => setShiftEditorState({isOpen: false, shift: null})}
-                    onDelete={onDeleteShift}
+                    onDelete={shiftEditorState.shift ? handleShiftDelete : undefined}
                     allAbsences={absences}
                     absenceTypes={absenceTypes}
                     allSpecialDays={specialDays}
@@ -741,7 +708,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = (props) => {
                     absenceTypes={absenceTypes}
                     onSave={handleAbsenceSave}
                     onCancel={() => setAbsenceEditorState({isOpen: false, absence: null})}
-                    onDelete={onDeleteAbsence}
+                    onDelete={absenceEditorState.absence ? handleAbsenceDelete : undefined}
                     allShifts={shifts}
                     allSpecialDays={specialDays}
                     allSpecialDayTypes={specialDayTypes}
@@ -754,7 +721,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = (props) => {
                     specialDayTypes={specialDayTypes}
                     onSave={handleSpecialDaySave}
                     onCancel={() => setSpecialDayEditorState({isOpen: false, specialDay: null, date: null})}
-                    onDelete={handleSpecialDayDelete}
+                    onDelete={specialDayEditorState.specialDay ? handleSpecialDayDelete : undefined}
                 />
             )}
             {meetingEditorState.isOpen && (
@@ -769,7 +736,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = (props) => {
                     allAbsences={absences}
                     allMeetings={meetings}
                     onSave={handleMeetingSave}
-                    onDelete={onDeleteMeeting}
+                    onDelete={handleMeetingDelete}
                 />
             )}
              <Modal 
@@ -783,15 +750,15 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = (props) => {
                         <div className="max-h-96 overflow-y-auto space-y-2 pr-2 -mr-2">
                             {filteredCalendarItems.meetings.filter(m => isSameDay(m.startTime, dayDetailModal.date!)).map(meeting => {
                                 const isMeetingLocked = new Date(meeting.endTime) < new Date();
-                                return <MeetingCard key={meeting.id} meeting={meeting} employees={employees} onClick={() => openEditMeetingModal(meeting)} onDelete={requestMeetingDelete} onDragStart={(e, meetingId) => handleDragStart(e, meetingId, 'meeting')} isSelectionModeActive={isSelectionModeActive} isSelected={selectedMeetingIds.includes(meeting.id)} onToggleSelect={toggleMeetingSelection} zoomLevel={2} isLocked={isLocked || isMeetingLocked}/>
+                                return <MeetingCard key={meeting.id} meeting={meeting} employees={employees} onClick={() => openEditMeetingModal(meeting)} onDelete={handleMeetingDelete} onDragStart={(e, meetingId) => handleDragStart(e, meetingId, 'meeting')} isSelectionModeActive={isSelectionModeActive} isSelected={selectedMeetingIds.includes(meeting.id)} onToggleSelect={toggleMeetingSelection} zoomLevel={2} isLocked={isLocked || isMeetingLocked}/>
                             })}
                             {filteredCalendarItems.absences.filter(a => isDateBetween(dayDetailModal.date!, a.startDate, a.endDate)).map(absence => {
                                 const isAbsenceLocked = absence.endDate < new Date();
-                                return <AbsenceCard key={absence.id} absence={absence} employee={employees.find(e => e.id === absence.employeeId)} absenceType={absenceTypes.find(at => at.id === absence.absenceTypeId)} onClick={() => openEditAbsenceModal(absence)} onDelete={requestAbsenceDelete} zoomLevel={2} isLocked={isLocked || isAbsenceLocked}/>
+                                return <AbsenceCard key={absence.id} absence={absence} employee={employees.find(e => e.id === absence.employeeId)} absenceType={absenceTypes.find(at => at.id === absence.absenceTypeId)} onClick={() => openEditAbsenceModal(absence)} onDelete={onDeleteAbsence} zoomLevel={2} isLocked={isLocked || isAbsenceLocked}/>
                             })}
                             {filteredCalendarItems.shifts.filter(s => isSameDay(s.startTime, dayDetailModal.date!)).sort((a,b)=>a.startTime.getTime() - b.startTime.getTime()).map(shift => {
                                 const isShiftLocked = shift.endTime < new Date() || !!shift.actualStartTime;
-                                return <ShiftCard key={shift.id} shift={shift} employee={employees.find(e => e.id === shift.employeeId)} location={locations.find(l => l.id === shift.locationId)} department={departments.find(d => d.id === shift.departmentId)} onDragStart={(e,shiftId) => handleDragStart(e, shiftId, 'shift')} onClick={() => openEditShiftModal(shift)} onDelete={requestShiftDelete} isSelectionModeActive={false} isSelected={false} onToggleSelect={()=>{}} zoomLevel={2} isLocked={isLocked || isShiftLocked} clockingStatus={getClockingStatus(shift)} />
+                                return <ShiftCard key={shift.id} shift={shift} employee={employees.find(e => e.id === shift.employeeId)} location={locations.find(l => l.id === shift.locationId)} department={departments.find(d => d.id === shift.departmentId)} onDragStart={(e,shiftId) => handleDragStart(e, shiftId, 'shift')} onClick={() => openEditShiftModal(shift)} onDelete={handleShiftDelete} isSelectionModeActive={false} isSelected={false} onToggleSelect={()=>{}} zoomLevel={2} isLocked={isLocked || isShiftLocked} clockingStatus={getClockingStatus(shift)} />
                             })}
                              {(filteredCalendarItems.shifts.filter(s => isSameDay(s.startTime, dayDetailModal.date!)).length === 0 &&
                                filteredCalendarItems.absences.filter(a => isDateBetween(dayDetailModal.date!, a.startDate, a.endDate)).length === 0 &&
@@ -802,29 +769,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = (props) => {
                     </div>
                 )}
              </Modal>
-             {deleteConfirm.isOpen && (
-                <Modal
-                    isOpen={true}
-                    onClose={() => setDeleteConfirm({ ...deleteConfirm, isOpen: false })}
-                    title={deleteConfirm.title}
-                    size="sm"
-                    footer={
-                        <>
-                            <button onClick={() => setDeleteConfirm({ ...deleteConfirm, isOpen: false })} className="btn-secondary">{t('modals.cancel')}</button>
-                            <button onClick={deleteConfirm.onConfirm} className="btn-danger flex items-center"><Trash2 size={16} className="mr-2"/>{t('modals.confirm')}</button>
-                        </>
-                    }
-                >
-                    <div className="flex items-start">
-                        <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <AlertTriangle className="h-6 w-6 text-red-600" aria-hidden="true" />
-                        </div>
-                        <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                            <p className="text-sm text-gray-500">{deleteConfirm.message}</p>
-                        </div>
-                    </div>
-                </Modal>
-             )}
              <ExportModal 
                 isOpen={isExportModalOpen}
                 onClose={() => setIsExportModalOpen(false)}
@@ -852,14 +796,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = (props) => {
                 allSpecialDays={specialDays}
                 allSpecialDayTypes={specialDayTypes}
             />
-             <style>{`
-                .btn-secondary { padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; color: #334155; background-color: #e2e8f0; border: 1px solid #e2e8f0; }
-                .dark .btn-secondary { color: #e2e8f0; background-color: #334155; border-color: #475569; }
-                .btn-secondary:hover { background-color: #cbd5e1; }
-                .dark .btn-secondary:hover { background-color: #475569; }
-                .btn-danger { padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; color: white; background-color: #dc2626; }
-                .btn-danger:hover { background-color: #b91c1c; }
-             `}</style>
         </div>
     );
 };
