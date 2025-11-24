@@ -1,9 +1,7 @@
-
-
 import React, { useState, useMemo, FC, useRef, useEffect } from 'react';
 import { Employee, EmployeeDocument, DocumentType } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { FileText, PlusCircle, AlertTriangle, Edit, Trash2, Upload, Download, Search, X, Filter, ChevronDown, LayoutGrid, Users, CheckCircle, Lightbulb } from 'lucide-react';
+import { FileText, PlusCircle, AlertTriangle, Edit, Trash2, Upload, Search, X, Lightbulb, Users as UsersIcon } from 'lucide-react';
 import Avatar from './Avatar';
 import Modal from './Modal';
 import DocumentEditor from './DocumentEditor';
@@ -40,49 +38,6 @@ const StatusBadge: FC<{ status: 'expired' | 'expiringSoon' | 'valid' }> = ({ sta
     return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${styles[status]}`}>{t(`referencing.status.${status}`)}</span>;
 };
 
-const ValidityBadge: FC<{ isValid: boolean }> = ({ isValid }) => {
-    const { t } = useLanguage();
-    const styles = isValid 
-        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
-    const text = isValid ? t('referencing.valid') : t('referencing.invalid');
-    return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${styles}`}>{text}</span>;
-};
-
-
-interface ActionOnExpirationModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onActionSelect: (status: Employee['status']) => void;
-    employee: Employee;
-    document: EmployeeDocument;
-}
-
-const ActionOnExpirationModal: FC<ActionOnExpirationModalProps> = ({ isOpen, onClose, onActionSelect, employee, document }) => {
-    const { t } = useLanguage();
-    const footer = <button onClick={onClose} className="btn-secondary">{t('modals.cancel')}</button>;
-
-    return (
-        <Modal isOpen={isOpen} onClose={onClose} title={t('referencing.actionOnExpirationTitle')} footer={footer} size="lg">
-            <p className="text-slate-600 dark:text-slate-400 mb-6" dangerouslySetInnerHTML={{ __html: t('referencing.actionOnExpirationDesc', { docName: `<strong>${document.name}</strong>`, empName: `<strong>${employee.name}</strong>` }) }} />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button onClick={() => onActionSelect('active')} className="p-4 border rounded-lg text-center hover:bg-slate-100 dark:hover:bg-slate-800">
-                    <p className="font-semibold">{t('referencing.keepActive')}</p>
-                    <p className="text-xs text-slate-500">Employee remains active.</p>
-                </button>
-                <button onClick={() => onActionSelect('inactive')} className="p-4 border rounded-lg text-center hover:bg-slate-100 dark:hover:bg-slate-800">
-                     <p className="font-semibold">{t('referencing.setToInactive')}</p>
-                    <p className="text-xs text-slate-500">Employee becomes inactive.</p>
-                </button>
-                <button onClick={() => onActionSelect('suspended')} className="p-4 border rounded-lg text-center hover:bg-slate-100 dark:hover:bg-slate-800">
-                     <p className="font-semibold">{t('referencing.suspend')}</p>
-                    <p className="text-xs text-slate-500">Employee is suspended.</p>
-                </button>
-            </div>
-        </Modal>
-    );
-};
-
 const SearchableEmployeeFilter: FC<{ employees: Employee[]; selectedId: string; onSelectionChange: (id: string) => void; }> = ({ employees, selectedId, onSelectionChange }) => {
     const { t } = useLanguage();
     const [searchTerm, setSearchTerm] = useState('');
@@ -90,10 +45,7 @@ const SearchableEmployeeFilter: FC<{ employees: Employee[]; selectedId: string; 
     const wrapperRef = useRef<HTMLDivElement>(null);
 
     const selectedEmployee = useMemo(() => employees.find(e => e.id === selectedId), [employees, selectedId]);
-
-    const availableEmployees = useMemo(() => {
-        return employees.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    }, [employees, searchTerm]);
+    const availableEmployees = useMemo(() => employees.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase())), [employees, searchTerm]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -137,60 +89,43 @@ interface ReferencingProps {
     onSaveDocument: (doc: EmployeeDocument) => void;
     onDeleteDocument: (docId: string) => void;
     onBulkCreateDocuments: (docs: Array<Omit<EmployeeDocument, 'id' | 'companyId'>>) => void;
-    onSaveEmployee: (employee: Employee, isNew: boolean) => void; // For status updates
+    onSaveEmployee: (employee: Employee, isNew: boolean) => void;
 }
 
 const referencingTourSteps: TourStep[] = [
-    { selector: "[data-tour-id='ref-add-doc']", titleKey: 'tour.referencing.addDocTitle', contentKey: 'tour.referencing.addDocContent', position: 'bottom' },
+    { selector: "[data-tour-id='ref-add-doc']", titleKey: 'tour.referencing.addTitle', contentKey: 'tour.referencing.addContent', position: 'bottom' },
     { selector: "[data-tour-id='ref-filters']", titleKey: 'tour.referencing.filterTitle', contentKey: 'tour.referencing.filterContent', position: 'bottom' },
-    { selector: "[data-tour-id='ref-doc-card']", titleKey: 'tour.referencing.docCardTitle', contentKey: 'tour.referencing.docCardContent', position: 'right' },
+    { selector: "[data-tour-id='ref-doc-card']", titleKey: 'tour.referencing.actionTitle', contentKey: 'tour.referencing.actionContent', position: 'right' },
 ];
 
 const Referencing: FC<ReferencingProps> = ({ employees, documents, documentTypes, onSaveDocument, onDeleteDocument, onBulkCreateDocuments, onSaveEmployee }) => {
     const { t } = useLanguage();
-    const [searchTerm, setSearchTerm] = useState('');
     const [filters, setFilters] = useState({ employeeId: 'all', typeId: 'all', status: 'all' });
     const [editorState, setEditorState] = useState<{ isOpen: boolean; doc: EmployeeDocument | null }>({ isOpen: false, doc: null });
     const [importState, setImportState] = useState<{ isOpen: boolean; employee: Employee | null }>({ isOpen: false, employee: null });
-    const [actionModalState, setActionModalState] = useState<{ isOpen: boolean; doc: EmployeeDocument | null; emp: Employee | null }>({ isOpen: false, doc: null, emp: null });
+    const [docToDelete, setDocToDelete] = useState<EmployeeDocument | null>(null);
     const [isTourActive, setIsTourActive] = useState(false);
 
     const documentsWithStatus = useMemo(() => documents.map(doc => ({ ...doc, status: getDocumentStatus(doc) })), [documents]);
 
-    const filteredEmployees = useMemo(() => {
-        let filtered = employees.filter(e => e.status === 'active');
-        if (searchTerm) {
-            filtered = filtered.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()));
-        }
-        if (filters.employeeId !== 'all') {
-            filtered = filtered.filter(e => e.id === filters.employeeId);
-        }
-        return filtered;
-    }, [employees, searchTerm, filters.employeeId]);
-
-    const filteredDocumentsByEmployee = (employeeId: string) => {
+    const filteredDocuments = useMemo(() => {
         return documentsWithStatus.filter(doc => {
-            if (doc.employeeId !== employeeId) return false;
-            if (filters.typeId !== 'all' && doc.typeId !== filters.typeId) return false;
-            if (filters.status !== 'all' && doc.status !== filters.status) return false;
-            return true;
-        }).sort((a,b) => a.name.localeCompare(b.name));
-    };
-    
-    const handleFilterChange = (change: Partial<typeof filters>) => {
-        setFilters(prev => ({ ...prev, ...change }));
-    };
+            const empMatch = filters.employeeId === 'all' || doc.employeeId === filters.employeeId;
+            const typeMatch = filters.typeId === 'all' || doc.typeId === filters.typeId;
+            const statusMatch = filters.status === 'all' || doc.status === filters.status;
+            return empMatch && typeMatch && statusMatch;
+        });
+    }, [documentsWithStatus, filters]);
 
     const handleClearFilters = () => {
         setFilters({ employeeId: 'all', typeId: 'all', status: 'all' });
-        setSearchTerm('');
     };
-
-    const handleActionSelect = (status: Employee['status']) => {
-        if(actionModalState.emp) {
-            onSaveEmployee({ ...actionModalState.emp, status }, false);
+    
+    const handleDeleteConfirm = () => {
+        if (docToDelete) {
+            onDeleteDocument(docToDelete.id);
+            setDocToDelete(null);
         }
-        setActionModalState({ isOpen: false, doc: null, emp: null });
     };
 
     return (
@@ -201,17 +136,17 @@ const Referencing: FC<ReferencingProps> = ({ employees, documents, documentTypes
             
             <div className="bg-white dark:bg-blue-night-900 p-4 rounded-xl shadow-md mb-6" data-tour-id="ref-filters">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <SearchableEmployeeFilter employees={employees} selectedId={filters.employeeId} onSelectionChange={(id) => handleFilterChange({ employeeId: id })} />
+                    <SearchableEmployeeFilter employees={employees} selectedId={filters.employeeId} onSelectionChange={(id) => setFilters(f => ({...f, employeeId: id}))} />
                     <div>
-                        <label className="label-style">{t('referencing.filterByType')}</label>
-                        <select value={filters.typeId} onChange={e => handleFilterChange({ typeId: e.target.value })} className="input-style">
-                            <option value="all">{t('referencing.allTypes')}</option>
+                        <label className="label-style">{t('referencing.filterByDocType')}</label>
+                        <select value={filters.typeId} onChange={e => setFilters(f => ({...f, typeId: e.target.value}))} className="input-style">
+                            <option value="all">{t('referencing.allDocTypes')}</option>
                             {documentTypes.map(dt => <option key={dt.id} value={dt.id}>{dt.name}</option>)}
                         </select>
                     </div>
                     <div>
                         <label className="label-style">{t('referencing.filterByStatus')}</label>
-                        <select value={filters.status} onChange={e => handleFilterChange({ status: e.target.value })} className="input-style">
+                        <select value={filters.status} onChange={e => setFilters(f => ({...f, status: e.target.value}))} className="input-style">
                             <option value="all">{t('referencing.allStatuses')}</option>
                             <option value="valid">{t('referencing.status.valid')}</option>
                             <option value="expiringSoon">{t('referencing.status.expiringSoon')}</option>
@@ -228,64 +163,62 @@ const Referencing: FC<ReferencingProps> = ({ employees, documents, documentTypes
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredEmployees.map(emp => {
-                    const empDocs = filteredDocumentsByEmployee(emp.id);
-                    return (
-                        <div key={emp.id} className="bg-white dark:bg-slate-900 rounded-xl shadow-md p-4">
-                            <div className="flex justify-between items-start pb-3 border-b dark:border-slate-800">
-                                <div className="flex items-center">
-                                    <Avatar name={emp.name} src={emp.avatarUrl} className="w-12 h-12 rounded-full mr-3" />
-                                    <div>
-                                        <p className="font-bold text-lg">{emp.name}</p>
-                                        <p className="text-sm text-slate-500">{emp.role}</p>
-                                    </div>
-                                </div>
-                                <button onClick={() => setImportState({isOpen: true, employee: emp})} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" title={t('referencing.importFor', {name: emp.name})}>
-                                    <Upload size={18} />
-                                </button>
-                            </div>
-                            <div className="pt-3 space-y-2 max-h-80 overflow-y-auto">
-                                {empDocs.length > 0 ? empDocs.map((doc, index) => {
-                                    const docType = documentTypes.find(dt => dt.id === doc.typeId);
-                                    return (
-                                        <div key={doc.id} className="group flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50" data-tour-id={index === 0 ? "ref-doc-card" : ""}>
-                                            <div className="flex items-center overflow-hidden">
-                                                <FileText size={18} className="mr-3 flex-shrink-0 text-slate-500" />
-                                                <div className="overflow-hidden">
-                                                    <p className="font-semibold text-sm truncate">{doc.name}</p>
-                                                    <p className="text-xs text-slate-500 truncate">{docType?.name || 'Unknown Type'}</p>
-                                                    {doc.expirationDate && (
-                                                        <div className="mt-1 flex items-center gap-2">
-                                                            <StatusBadge status={doc.status} />
-                                                            <span className="text-xs text-slate-500">{new Date(doc.expirationDate).toLocaleDateString()}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                {doc.status === 'expired' && <button onClick={() => setActionModalState({isOpen: true, doc, emp})} className="p-2 rounded-full hover:bg-yellow-100 dark:hover:bg-yellow-900/50"><AlertTriangle size={16} className="text-yellow-600"/></button>}
-                                                <button onClick={() => setEditorState({isOpen: true, doc})} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><Edit size={16} /></button>
-                                                <button onClick={() => onDeleteDocument(doc.id)} className="p-2 rounded-full text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50"><Trash2 size={16} /></button>
-                                            </div>
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-md overflow-x-auto">
+                 <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-50 dark:bg-blue-night-800 text-xs uppercase text-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th scope="col" className="px-6 py-3">{t('referencing.table.document')}</th>
+                            <th scope="col" className="px-6 py-3">{t('referencing.table.employee')}</th>
+                            <th scope="col" className="px-6 py-3">{t('referencing.table.type')}</th>
+                            <th scope="col" className="px-6 py-3">{t('referencing.table.expiration')}</th>
+                            <th scope="col" className="px-6 py-3">{t('referencing.table.status')}</th>
+                            <th scope="col" className="px-6 py-3 text-right">{t('employees.tableHeaderActions')}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredDocuments.map((doc, index) => {
+                            const employee = employees.find(e => e.id === doc.employeeId);
+                            const docType = documentTypes.find(dt => dt.id === doc.typeId);
+                            return (
+                                <tr key={doc.id} className="border-b dark:border-blue-night-700 hover:bg-gray-50 dark:hover:bg-blue-night-800/50" data-tour-id={index === 0 ? "ref-doc-card" : ""}>
+                                    <td className="px-6 py-4 font-medium">{doc.name}</td>
+                                    <td className="px-6 py-4">{employee?.name}</td>
+                                    <td className="px-6 py-4">{docType?.name}</td>
+                                    <td className="px-6 py-4">{doc.expirationDate ? new Date(doc.expirationDate).toLocaleDateString() : 'N/A'}</td>
+                                    <td className="px-6 py-4"><StatusBadge status={doc.status} /></td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex justify-end space-x-2">
+                                            <button onClick={() => setEditorState({isOpen: true, doc})} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-blue-night-700"><Edit size={16} /></button>
+                                            <button onClick={() => setDocToDelete(doc)} className="p-2 rounded-full text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50"><Trash2 size={16} /></button>
                                         </div>
-                                    )
-                                }) : <p className="text-center text-sm text-slate-500 py-4">{t('referencing.noDocuments')}</p>}
-                            </div>
-                        </div>
-                    )
-                })}
+                                    </td>
+                                </tr>
+                            )
+                        })}
+                    </tbody>
+                 </table>
+                  {filteredDocuments.length === 0 && <p className="text-center py-10 text-slate-500">{t('referencing.noDocuments')}</p>}
             </div>
             
             {editorState.isOpen && <DocumentEditor isOpen={true} onClose={() => setEditorState({isOpen: false, doc: null})} document={editorState.doc} employees={employees} documentTypes={documentTypes} documents={documents} onSave={onSaveDocument} />}
-            {importState.isOpen && importState.employee && <DocumentImportModal isOpen={true} onClose={() => setImportState({isOpen: false, employee: null})} onImport={onBulkCreateDocuments} employee={importState.employee} documentTypes={documentTypes} />}
-            {actionModalState.isOpen && actionModalState.doc && actionModalState.emp && <ActionOnExpirationModal isOpen={true} onClose={() => setActionModalState({ isOpen: false, doc: null, emp: null })} onActionSelect={handleActionSelect} employee={actionModalState.emp} document={actionModalState.doc} />}
+            {docToDelete && (
+                <Modal
+                    isOpen={true}
+                    onClose={() => setDocToDelete(null)}
+                    title={t('modals.confirmDelete', { name: docToDelete.name })}
+                    size="sm"
+                    footer={<><button onClick={() => setDocToDelete(null)} className="btn-secondary">{t('modals.cancel')}</button><button onClick={handleDeleteConfirm} className="btn-danger">{t('modals.confirm')}</button></>}
+                >
+                    <p>{t('referencing.confirmDelete', { name: docToDelete.name })}</p>
+                </Modal>
+            )}
             
             <style>{`
                 .label-style { display: block; margin-bottom: 0.25rem; font-size: 0.75rem; font-weight: 500; color: #64748b; } .dark .label-style { color: #94a3b8; }
                 .input-style { display: block; width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; background-color: #f8fafc; } .dark .input-style { border-color: #475569; background-color: #1e293b; color: #f8fafc; }
                 .btn-primary { display: flex; align-items: center; justify-content: center; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; color: white; background-color: #2563eb; }
                 .btn-secondary { display: flex; align-items: center; justify-content: center; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; background-color: #e2e8f0; } .dark .btn-secondary { background-color: #334155; color: #e2e8f0; }
+                .btn-danger { background-color: #ef4444; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; }
             `}</style>
         </div>
     );

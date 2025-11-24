@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo } from 'react';
 import { Shift, Employee, Role, Location, Department, Absence, AbsenceType, SpecialDay, SpecialDayType, EmployeeAvailability, ClockingStatus, Meeting, Team } from '../types';
 import ShiftCard from './ShiftCard';
@@ -382,6 +380,18 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = (props) => {
             }
         });
     };
+    const requestAbsenceDelete = (absenceId: string) => {
+         setDeleteConfirm({
+            isOpen: true,
+            title: t('modals.confirmDelete', {name: 'this absence'}),
+            message: 'This action cannot be undone.',
+            onConfirm: () => {
+                onDeleteAbsence(absenceId);
+                setAbsenceEditorState({isOpen: false, absence: null});
+                setDeleteConfirm({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+            }
+        });
+    };
     const requestMeetingDelete = (meetingId: string) => {
         setDeleteConfirm({
             isOpen: true,
@@ -417,7 +427,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = (props) => {
     const handleAbsenceSave = (absence: Absence) => { onSaveAbsence(absence); setAbsenceEditorState({isOpen: false, absence: null}); }
     const handleSpecialDaySave = (specialDay: SpecialDay) => { onSaveSpecialDay(specialDay); setSpecialDayEditorState({isOpen: false, specialDay: null, date: null}); }
     const handleMeetingSave = (meeting: Meeting) => { onSaveMeeting(meeting); setMeetingEditorState({isOpen: false, meeting: null}); }
-    const handleAbsenceDelete = (absenceId: string) => { onDeleteAbsence(absenceId); setAbsenceEditorState({isOpen: false, absence: null}); }
+    
     const handleSpecialDayDelete = (specialDayId: string) => { onDeleteSpecialDay(specialDayId); setSpecialDayEditorState({isOpen: false, specialDay: null, date: null}); }
     
     const toggleSelectionMode = () => { setIsSelectionModeActive(!isSelectionModeActive); setSelectedShiftIds([]); setSelectedMeetingIds([]); }
@@ -642,7 +652,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = (props) => {
                                     
                                     {absencesForDay.map(absence => {
                                         const isAbsenceLocked = absence.endDate < new Date();
-                                        return <AbsenceCard key={absence.id} absence={absence} employee={employees.find(e => e.id === absence.employeeId)} absenceType={absenceTypes.find(at => at.id === absence.absenceTypeId)} onClick={() => openEditAbsenceModal(absence)} onDelete={handleAbsenceDelete} zoomLevel={currentZoomLevel} isLocked={isLocked || isAbsenceLocked} />
+                                        return <AbsenceCard key={absence.id} absence={absence} employee={employees.find(e => e.id === absence.employeeId)} absenceType={absenceTypes.find(at => at.id === absence.absenceTypeId)} onClick={() => openEditAbsenceModal(absence)} onDelete={requestAbsenceDelete} zoomLevel={currentZoomLevel} isLocked={isLocked || isAbsenceLocked} />
                                     })}
                                     {assignedShiftsForDay.map(shift => {
                                         const isShiftLocked = shift.endTime < new Date() || !!shift.actualStartTime;
@@ -777,7 +787,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = (props) => {
                             })}
                             {filteredCalendarItems.absences.filter(a => isDateBetween(dayDetailModal.date!, a.startDate, a.endDate)).map(absence => {
                                 const isAbsenceLocked = absence.endDate < new Date();
-                                return <AbsenceCard key={absence.id} absence={absence} employee={employees.find(e => e.id === absence.employeeId)} absenceType={absenceTypes.find(at => at.id === absence.absenceTypeId)} onClick={() => openEditAbsenceModal(absence)} onDelete={handleAbsenceDelete} zoomLevel={2} isLocked={isLocked || isAbsenceLocked}/>
+                                return <AbsenceCard key={absence.id} absence={absence} employee={employees.find(e => e.id === absence.employeeId)} absenceType={absenceTypes.find(at => at.id === absence.absenceTypeId)} onClick={() => openEditAbsenceModal(absence)} onDelete={requestAbsenceDelete} zoomLevel={2} isLocked={isLocked || isAbsenceLocked}/>
                             })}
                             {filteredCalendarItems.shifts.filter(s => isSameDay(s.startTime, dayDetailModal.date!)).sort((a,b)=>a.startTime.getTime() - b.startTime.getTime()).map(shift => {
                                 const isShiftLocked = shift.endTime < new Date() || !!shift.actualStartTime;
@@ -842,7 +852,14 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = (props) => {
                 allSpecialDays={specialDays}
                 allSpecialDayTypes={specialDayTypes}
             />
-             <style>{`.btn-danger { color: white; background-color: #dc2626; } .btn-danger:hover { background-color: #b91c1c; }`}</style>
+             <style>{`
+                .btn-secondary { padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; color: #334155; background-color: #e2e8f0; border: 1px solid #e2e8f0; }
+                .dark .btn-secondary { color: #e2e8f0; background-color: #334155; border-color: #475569; }
+                .btn-secondary:hover { background-color: #cbd5e1; }
+                .dark .btn-secondary:hover { background-color: #475569; }
+                .btn-danger { padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; color: white; background-color: #dc2626; }
+                .btn-danger:hover { background-color: #b91c1c; }
+             `}</style>
         </div>
     );
 };

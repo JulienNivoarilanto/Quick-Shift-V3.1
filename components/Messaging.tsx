@@ -1,9 +1,8 @@
-
 import React, { useState, useMemo, FC, useRef, useEffect } from 'react';
 import { InboxMessage, MessageGroup, ChatMessage, Employee, Team, User, AbsenceType } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Inbox, Users, MessageSquare as DirectMessageIcon, PlusCircle, Search, Edit, Trash2, Send, Paperclip, Smile, MoreVertical, X, CheckSquare, XSquare } from 'lucide-react';
+import { Inbox, Users, MessageSquare as DirectMessageIcon, PlusCircle, Search, Edit, Trash2, Send, Paperclip, Smile, MoreVertical, X, CheckSquare, XSquare, AlertTriangle } from 'lucide-react';
 import MessageItem from './MessageItem';
 import Modal from './Modal';
 import Avatar from './Avatar';
@@ -127,6 +126,10 @@ const ChatWindow: FC<{
     const emojiPickerRef = useRef<HTMLDivElement>(null);
     const emojiButtonRef = useRef<HTMLButtonElement>(null);
     
+    // Deletion State
+    const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
+    const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+
     // Selection State
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
@@ -189,10 +192,20 @@ const ChatWindow: FC<{
 
     const handleBulkDelete = () => {
         if (selectedMessageIds.length === 0) return;
-        if (window.confirm(t('modals.confirmDeleteMultiple', {count: selectedMessageIds.length}))) {
-            onBulkDeleteMessages(selectedMessageIds);
-            setSelectedMessageIds([]);
-            setIsSelectionMode(false);
+        setShowBulkDeleteConfirm(true);
+    };
+    
+    const confirmBulkDelete = () => {
+        onBulkDeleteMessages(selectedMessageIds);
+        setSelectedMessageIds([]);
+        setIsSelectionMode(false);
+        setShowBulkDeleteConfirm(false);
+    };
+
+    const confirmDeleteSingle = () => {
+        if(messageToDelete) {
+            onDeleteMessage(messageToDelete);
+            setMessageToDelete(null);
         }
     };
 
@@ -262,7 +275,7 @@ const ChatWindow: FC<{
                                             </span>
                                         </div>
                                     )}
-                                    <div className={`p-3 rounded-2xl relative ${isSentByMe ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-200 dark:bg-slate-700 rounded-bl-none'} ${isSelected ? 'ring-2 ring-yellow-400' : ''}`}>
+                                    <div className={`p-3 rounded-2xl relative ${isSentByMe ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-200 dark:bg-slate-700 rounded-bl-none'} ${isSelected ? 'ring-2 ring-blue-500' : ''}`}>
                                         <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
                                         <p className={`text-[10px] mt-1 text-right ${isSentByMe ? 'text-blue-200' : 'text-slate-500 dark:text-slate-400'}`}>
                                             {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -271,7 +284,7 @@ const ChatWindow: FC<{
                                     
                                     {!isSelectionMode && (
                                         <button 
-                                            onClick={(e) => { e.stopPropagation(); if(window.confirm('Delete message?')) onDeleteMessage(msg.id); }} 
+                                            onClick={(e) => { e.stopPropagation(); setMessageToDelete(msg.id); }} 
                                             className={`absolute top-1/2 -translate-y-1/2 p-1 rounded-full bg-slate-100 dark:bg-slate-800 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity ${isSentByMe ? '-left-8' : '-right-8'}`}
                                         >
                                             <Trash2 size={14} className="text-red-500"/>
@@ -312,6 +325,20 @@ const ChatWindow: FC<{
                     </div>
                 </div>
             </div>
+
+            {messageToDelete && (
+                <Modal isOpen={true} onClose={() => setMessageToDelete(null)} title="Delete Message" size="sm"
+                    footer={<><button onClick={() => setMessageToDelete(null)} className="btn-secondary">Cancel</button><button onClick={confirmDeleteSingle} className="btn-danger">Delete</button></>}>
+                    <p>Are you sure you want to permanently delete this message?</p>
+                </Modal>
+            )}
+             {showBulkDeleteConfirm && (
+                <Modal isOpen={true} onClose={() => setShowBulkDeleteConfirm(false)} title={`Delete ${selectedMessageIds.length} Messages`} size="sm"
+                    footer={<><button onClick={() => setShowBulkDeleteConfirm(false)} className="btn-secondary">Cancel</button><button onClick={confirmBulkDelete} className="btn-danger">Delete</button></>}>
+                    <p>Are you sure you want to permanently delete {selectedMessageIds.length} messages?</p>
+                </Modal>
+            )}
+
         </div>
     );
 };
@@ -327,6 +354,7 @@ const Messaging: FC<MessagingProps> = (props) => {
     const [groupSearchTerm, setGroupSearchTerm] = useState('');
     const [directSearchTerm, setDirectSearchTerm] = useState('');
     const [groupEditorModal, setGroupEditorModal] = useState<{ isOpen: boolean; group: MessageGroup | null }>({ isOpen: false, group: null });
+    const [groupToDelete, setGroupToDelete] = useState<MessageGroup | null>(null);
     
     const allUsersForChat = useMemo(() => [...employees, ...props.users], [employees, props.users]);
 
@@ -396,12 +424,13 @@ const Messaging: FC<MessagingProps> = (props) => {
         }
     };
 
-    const handleDeleteGroup = (group: MessageGroup) => {
-        if(window.confirm(t('messaging.confirmDeleteGroup', {name: group.name}))) {
-            onDeleteGroup(group.id);
-            if(selectedConversationId === group.id) {
+    const handleDeleteGroupConfirm = () => {
+        if(groupToDelete) {
+            onDeleteGroup(groupToDelete.id);
+            if(selectedConversationId === groupToDelete.id) {
                 setSelectedConversationId(null);
             }
+            setGroupToDelete(null);
         }
     };
 
@@ -478,7 +507,6 @@ const Messaging: FC<MessagingProps> = (props) => {
                                             onValidate={onValidateRequest}
                                             onRefuse={onRefuseRequest}
                                             onFollowUp={onFollowUpComplaint}
-                                            onDelete={props.onDeleteMessage}
                                         />
                                     );
                                 })
@@ -518,7 +546,7 @@ const Messaging: FC<MessagingProps> = (props) => {
                                                     <div className="flex-shrink-0 flex items-center">
                                                          {unreadCount > 0 && <span className="mr-2 px-2 py-1 text-xs font-bold text-white bg-red-500 rounded-full">{unreadCount}</span>}
                                                         <button onClick={(e) => { e.stopPropagation(); setGroupEditorModal({isOpen: true, group}); }} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full"><Edit size={16} /></button>
-                                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group); }} className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full"><Trash2 size={16} /></button>
+                                                        <button onClick={(e) => { e.stopPropagation(); setGroupToDelete(group); }} className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full"><Trash2 size={16} /></button>
                                                     </div>
                                                 </div>
                                             )
@@ -609,12 +637,25 @@ const Messaging: FC<MessagingProps> = (props) => {
                     teams={teams}
                 />
             )}
+            
+            {groupToDelete && (
+                <Modal
+                    isOpen={true}
+                    onClose={() => setGroupToDelete(null)}
+                    title={t('messaging.deleteGroup')}
+                    size="sm"
+                    footer={<><button onClick={() => setGroupToDelete(null)} className="btn-secondary">Cancel</button><button onClick={handleDeleteGroupConfirm} className="btn-danger">Delete</button></>}
+                >
+                    <p>{t('messaging.confirmDeleteGroup', {name: groupToDelete.name})}</p>
+                </Modal>
+            )}
 
             <style>{`
                 .input-style { display: block; width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; background-color: #f8fafc; } .dark .input-style { border-color: #475569; background-color: #1e293b; color: #f8fafc; }
                 .btn-primary { padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; color: white; background-color: #2563eb; }
                 .btn-secondary { padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; background-color: #e2e8f0; }
                 .dark .btn-secondary { background-color: #334155; color: #e2e8f0; }
+                .btn-danger { background-color: #ef4444; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; }
             `}</style>
         </div>
     );
