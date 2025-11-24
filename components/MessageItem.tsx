@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { InboxMessage, Employee, AbsenceType } from '../types';
 import Avatar from './Avatar';
-import { Check, X, Send, ArrowRight, Trash2 } from 'lucide-react';
+import { Check, X, Send, ArrowRight } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import Modal from './Modal';
 
@@ -12,7 +12,6 @@ interface MessageItemProps {
     onValidate: (messageId: string) => void;
     onRefuse: (messageId: string, reason: string) => void;
     onFollowUp: (messageId: string) => void;
-    onDelete: (messageId: string) => void;
 }
 
 const timeAgo = (date: Date): string => {
@@ -42,7 +41,7 @@ const StatusBadge: React.FC<{ status: InboxMessage['status'] }> = ({ status }) =
     return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${styles[status]}`}>{t(`inbox.status${status.charAt(0).toUpperCase() + status.slice(1).replace('-','')}`)}</span>;
 }
 
-const MessageItem: React.FC<MessageItemProps> = ({ message, employee, absenceType, onValidate, onRefuse, onFollowUp, onDelete }) => {
+const MessageItem: React.FC<MessageItemProps> = ({ message, employee, absenceType, onValidate, onRefuse, onFollowUp }) => {
     const { t } = useLanguage();
     const [isRefusing, setIsRefusing] = useState(false);
     const [refusalReason, setRefusalReason] = useState('');
@@ -68,12 +67,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, employee, absenceTyp
         setShowValidationConfirm(false);
     };
 
-    const handleDelete = (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onDelete(message.id);
-    }
-
     return (
         <div className="p-3 border-b border-gray-200 dark:border-blue-night-800 last:border-b-0 hover:bg-gray-50 dark:hover:bg-blue-night-800/50 group">
             <div className="flex items-start space-x-3">
@@ -86,14 +79,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, employee, absenceTyp
                         </div>
                         <div className="flex items-center">
                             <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0 mr-2">{timeAgo(message.date)}</span>
-                            <button 
-                                type="button"
-                                onClick={handleDelete} 
-                                className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 cursor-pointer z-10 relative" 
-                                title={t('history.deleteSelected', { count: 1 })}
-                            >
-                                <Trash2 size={14} />
-                            </button>
                         </div>
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{message.body}</p>

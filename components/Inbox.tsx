@@ -1,9 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Mail, CheckCircle, Clock, AlertTriangle, Trash2 } from 'lucide-react';
+import { Mail, CheckCircle, Clock } from 'lucide-react';
 import { InboxMessage, Employee, AbsenceType } from '../types';
 import MessageItem from './MessageItem';
 import { useLanguage } from '../contexts/LanguageContext';
-import Modal from './Modal';
 
 interface InboxProps {
     messages: InboxMessage[];
@@ -12,18 +11,14 @@ interface InboxProps {
     onValidateRequest: (messageId: string) => void;
     onRefuseRequest: (messageId: string, reason: string) => void;
     onFollowUpComplaint: (messageId: string) => void;
-    onDeleteMessage: (messageId: string) => void;
 }
 
 const Inbox: React.FC<InboxProps> = (props) => {
-    const { messages, employees, absenceTypes, onValidateRequest, onRefuseRequest, onFollowUpComplaint, onDeleteMessage } = props;
+    const { messages, employees, absenceTypes, onValidateRequest, onRefuseRequest, onFollowUpComplaint } = props;
     const { t } = useLanguage();
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
     const dropdownRef = useRef<HTMLDivElement>(null);
-    
-    // State for delete confirmation modal
-    const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
 
     const pendingMessagesCount = useMemo(() => {
         return messages.filter(m => m.status === 'pending').length;
@@ -44,8 +39,6 @@ const Inbox: React.FC<InboxProps> = (props) => {
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                // Do not close if interacting with a modal (portal)
-                // Check if the click target is within a modal-like structure
                 const isModalClick = (event.target as Element).closest('[role="dialog"]');
                 if (!isModalClick) {
                     setIsOpen(false);
@@ -55,18 +48,6 @@ const Inbox: React.FC<InboxProps> = (props) => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
-
-    const handleDeleteClick = (messageId: string) => {
-        // Setting this state triggers the modal rendering
-        setMessageToDelete(messageId);
-    };
-
-    const confirmDelete = () => {
-        if (messageToDelete) {
-            onDeleteMessage(messageToDelete);
-            setMessageToDelete(null);
-        }
-    };
 
     return (
         <div className="relative" ref={dropdownRef}>
@@ -120,7 +101,6 @@ const Inbox: React.FC<InboxProps> = (props) => {
                                         onValidate={onValidateRequest}
                                         onRefuse={onRefuseRequest}
                                         onFollowUp={onFollowUpComplaint}
-                                        onDelete={handleDeleteClick}
                                     />
                                 );
                             })
@@ -143,36 +123,6 @@ const Inbox: React.FC<InboxProps> = (props) => {
                         )}
                     </div>
                 </div>
-            )}
-
-            {/* Delete Confirmation Modal - Rendered via Portal, so it overlays everything */}
-            {messageToDelete && (
-                <Modal
-                    isOpen={true}
-                    onClose={() => setMessageToDelete(null)}
-                    title={t('modals.confirm')}
-                    footer={
-                        <>
-                            <button onClick={() => setMessageToDelete(null)} className="btn-secondary">{t('modals.cancel')}</button>
-                            <button onClick={confirmDelete} className="btn-danger p-2 flex items-center">
-                                <Trash2 size={16} className="mr-2" /> {t('employees.deleteSelected')}
-                            </button>
-                        </>
-                    }
-                    size="sm"
-                >
-                    <div className="flex items-start space-x-3">
-                        <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full text-red-600 dark:text-red-400">
-                            <AlertTriangle size={24} />
-                        </div>
-                        <div>
-                            <p className="font-semibold text-gray-900 dark:text-white">{t('modals.confirmDeleteMultiple', { count: 1 })}</p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                This action cannot be undone.
-                            </p>
-                        </div>
-                    </div>
-                </Modal>
             )}
         </div>
     );

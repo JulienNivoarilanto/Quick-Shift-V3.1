@@ -13,7 +13,6 @@ interface HeaderProps {
     onValidateRequest: (messageId: string) => void;
     onRefuseRequest: (messageId: string, reason: string) => void;
     onFollowUpComplaint: (messageId: string) => void;
-    onDeleteInboxMessage: (messageId: string) => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
@@ -23,7 +22,6 @@ const Header: React.FC<HeaderProps> = ({
     onValidateRequest, 
     onRefuseRequest, 
     onFollowUpComplaint, 
-    onDeleteInboxMessage 
 }) => {
   const { user } = useAuth();
   return (
@@ -38,7 +36,6 @@ const Header: React.FC<HeaderProps> = ({
                     onValidateRequest={onValidateRequest}
                     onRefuseRequest={onRefuseRequest}
                     onFollowUpComplaint={onFollowUpComplaint}
-                    onDeleteMessage={onDeleteInboxMessage}
                 />
             )}
            <LanguageSwitcher />

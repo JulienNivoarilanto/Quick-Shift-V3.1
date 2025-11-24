@@ -62,7 +62,6 @@ interface DataHandlerContextType {
     handleValidateRequest: (messageId: string) => Promise<void>;
     handleRefuseRequest: (messageId: string, reason: string) => Promise<void>;
     handleFollowUpComplaint: (messageId: string) => Promise<void>;
-    handleDeleteInboxMessage: (messageId: string) => Promise<void>;
     handleSaveEmployeeAvailability: (employeeId: string, availability: WeeklyAvailability) => Promise<void>;
     handleImportEmployees: (importedData: Array<Omit<Employee, 'id' | 'avatarUrl' | 'companyId'>>) => Promise<void>;
     handleBulkAddShifts: (newShifts: Array<Omit<Shift, 'id' | 'companyId'>>) => Promise<void>;
@@ -334,8 +333,6 @@ export const DataProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         await api.apiUpdateItem<InboxMessage>('inboxMessages', messageId, { status: 'followed-up', processedBy: processorName });
     }
 
-    const handleDeleteInboxMessage = (messageId: string) => handleDeleteItem('inboxMessages', messageId);
-
     const handleSaveEmployeeAvailability = (employeeId: string, availability: WeeklyAvailability) => handleSaveItem('employeeAvailabilities', { id: employeeId, employeeId, availability, companyId: user!.companyId }, !state.employeeAvailabilities.some(ea => ea.id === employeeId));
 
     const handleImportEmployees = async (importedData: Array<Omit<Employee, 'id' | 'avatarUrl' | 'companyId'>>) => {
@@ -481,7 +478,7 @@ export const DataProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         handleDeleteDepartment, handleAddAbsenceType, handleUpdateAbsenceType, handleDeleteAbsenceType,
         handleSaveAbsence, handleDeleteAbsence, handleAddSpecialDayType, handleUpdateSpecialDayType,
         handleDeleteSpecialDayType, handleSaveSpecialDay, handleDeleteSpecialDay, handleValidateRequest,
-        handleRefuseRequest, handleFollowUpComplaint, handleDeleteInboxMessage, handleSaveEmployeeAvailability, handleImportEmployees,
+        handleRefuseRequest, handleFollowUpComplaint, handleSaveEmployeeAvailability, handleImportEmployees,
         handleBulkAddShifts, handleBulkDeleteEmployees, handleBulkAssignRole,
         handleSaveEmployeeDocument, handleDeleteEmployeeDocument, handleBulkCreateEmployeeDocuments,
         handleAddDocumentType, handleUpdateDocumentType, handleDeleteDocumentType,
