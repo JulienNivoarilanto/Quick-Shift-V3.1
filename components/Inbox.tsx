@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Mail, CheckCircle, Clock, AlertTriangle, Trash2 } from 'lucide-react';
 import { InboxMessage, Employee, AbsenceType } from '../types';
@@ -45,9 +46,10 @@ const Inbox: React.FC<InboxProps> = (props) => {
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                // Do not close if interacting with a modal
-                const isModalOpen = document.querySelector('.animate-modal-content-slide-in');
-                if (!isModalOpen) {
+                // Do not close if interacting with a modal (portal)
+                // Check if the click target is within a modal-like structure
+                const isModalClick = (event.target as Element).closest('[role="dialog"]');
+                if (!isModalClick) {
                     setIsOpen(false);
                 }
             }
@@ -57,6 +59,7 @@ const Inbox: React.FC<InboxProps> = (props) => {
     }, []);
 
     const handleDeleteClick = (messageId: string) => {
+        // Setting this state triggers the modal rendering
         setMessageToDelete(messageId);
     };
 
@@ -144,7 +147,7 @@ const Inbox: React.FC<InboxProps> = (props) => {
                 </div>
             )}
 
-            {/* Delete Confirmation Modal */}
+            {/* Delete Confirmation Modal - Rendered via Portal, so it overlays everything */}
             {messageToDelete && (
                 <Modal
                     isOpen={true}
